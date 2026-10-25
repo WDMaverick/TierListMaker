@@ -10,6 +10,8 @@ A TierMaker-style tier list builder for League of Legends, made for ranking cham
 - Search the champion pool
 - **Player Pools** tab: 5 player slots with name, role and champion pool. Drag from a player's pool straight into the tier list. The same champion can be ranked once per player, and each entry gets a role tag (TOP / JGL / MID / BOT / SUP); a badge on pool champions shows their tier
 - **Bot Lane Pairings** (6th slot): build ADC & Support duos from any champions (with quick filters for your Bot and Support players' pools). Champions can appear in many pairs, and each pair ranks as a single "Champion & Champion" tile
+- **Substitutes**: add as many extra player slots as you need; their champions get a SUB role tag (e.g. SUB MID)
+- **Show / hide** (eye button) on every player, substitute and the pairings card: hides their entries on the tier list while keeping the pool and each entry's position
 - Download the tier list as a PNG
 - Copy a share link that opens the exact same list for a teammate
 - Export / import tier lists as JSON

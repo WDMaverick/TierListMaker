@@ -314,3 +314,29 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
 .menu-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .menu-check { color: var(--accent); width: 12px; }
 .tier-menu .menu-remove { color: #ff9b9b; border-top: 1px solid #3c3c36; border-radius: 0 0 5px 5px; margin-top: 4px; }
+
+/* ----- Show / hide a pool on the tier list ----- */
+.head-actions { display: flex; gap: 6px; align-items: center; }
+.vis-toggle { display: inline-flex; align-items: center; gap: 5px; }
+.vis-toggle svg { flex-shrink: 0; }
+.vis-toggle.off { color: var(--muted); border-style: dashed; }
+.player-card.is-hidden .player-pool { opacity: .4; }
+.player-card.is-hidden .player-pool .champ { cursor: not-allowed; }
+.player-card.is-hidden .player-name { color: var(--muted); }
+.hidden-note {
+  display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;
+  margin: -6px 0 10px; font-size: 13px; color: var(--muted);
+}
+.hidden-note[hidden] { display: none; }
+.hidden-note strong { color: var(--text); font-weight: 600; }
+.link-btn { background: none; border: none; color: var(--accent); font: 600 13px "Inter", sans-serif; cursor: pointer; padding: 0; text-decoration: underline; }
+
+/* ----- Substitutes ----- */
+.sub-badge {
+  background: #3c3c36; color: var(--text); border-radius: 4px; padding: 2px 6px;
+  font-size: 11px; font-weight: 800; letter-spacing: .5px;
+}
+.subs-empty { margin: 0 0 10px; font-size: 13px; }
+.subs-empty[hidden] { display: none; }
+#subs:not(:empty) { margin-bottom: 10px; }
+.add-sub { width: 100%; border-style: dashed; }

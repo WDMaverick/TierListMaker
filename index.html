@@ -6,7 +6,7 @@
   <title>League Tier List Maker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=202610251631" />
+  <link rel="stylesheet" href="style.css?v=202610251656" />
 </head>
 <body>
   <header class="topbar">
@@ -29,6 +29,7 @@
       <button id="btn-reset" class="btn danger">Reset</button>
     </div>
 
+    <div id="hidden-note" class="hidden-note" hidden></div>
     <div id="tierlist" class="tierlist"></div>
 
     <div class="tabs" role="tablist">
@@ -45,7 +46,7 @@
     </section>
 
     <section class="tab-panel" id="panel-players" hidden>
-      <p class="muted">Set up your 5 players and their champion pools. Drag a champion from a pool into the tier list to rank it for that player — it gets a role tag (TOP, JGL, MID, BOT, SUP), so the same champion can be ranked once per player. The badge on a pool champion shows its tier; drag a tagged champion back here to unrank it. Tip: double-click a champion or pair to send it straight to a tier.</p>
+      <p class="muted">Set up your 5 players and their champion pools. Drag a champion from a pool into the tier list to rank it for that player — it gets a role tag (TOP, JGL, MID, BOT, SUP), so the same champion can be ranked once per player. The badge on a pool champion shows its tier; drag a tagged champion back here to unrank it. Tip: double-click a champion or pair to send it straight to a tier. Use the eye button on a pool to hide its entries on the tier list without losing them.</p>
       <div id="players" class="players"></div>
 
       <div class="section-divider"></div>
@@ -54,6 +55,15 @@
         <p class="muted">Independent of the player pools: build ADC &amp; Support duos from any champions. Each pair ranks as one tile.</p>
       </div>
       <div id="pairs"></div>
+
+      <div class="section-divider"></div>
+      <div class="section-head">
+        <h2>Substitutes</h2>
+        <p class="muted">Extra player slots for subs. Their champions get a SUB tag on the tier list.</p>
+      </div>
+      <div id="subs" class="players"></div>
+      <p id="subs-empty" class="muted subs-empty">No substitutes yet.</p>
+      <button type="button" id="add-sub" class="btn add-sub">+ Add substitute</button>
     </section>
 
     <p class="hint">Drag champions into a tier (works with mouse and touch). Click a tier label to rename it, and the ⚙ to change its color or move, clear, or delete the row. Your list saves automatically in this browser.</p>
@@ -115,6 +125,6 @@
   <div id="toast" class="toast"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="app.js?v=202610251631"></script>
+  <script src="app.js?v=202610251656"></script>
 </body>
 </html>

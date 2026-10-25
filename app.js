@@ -22,12 +22,26 @@ const ROLE_TAGS = { Top: "TOP", Jungle: "JGL", Mid: "MID", Bot: "BOT", Support: 
 // specific player's Ahri. That lets the same champion be ranked once per player.
 const entryKey = (id, pid) => (pid ? `${id}|${pid}` : id);
 const parseKey = (key) => { const [id, pid] = String(key).split("|"); return { id, pid: pid || null }; };
-const playerById = (pid) => state.players.find((p) => p.id === pid);
+// Starters (always 5) plus any number of substitutes share the same shape.
+const allPlayers = () => [...state.players, ...state.subs];
+const playerById = (pid) => allPlayers().find((p) => p.id === pid);
+const isSub = (p) => state.subs.includes(p);
+function playerLabel(p) {
+  if (p.name.trim()) return p.name.trim();
+  return isSub(p) ? `Substitute ${state.subs.indexOf(p) + 1}` : `Player ${state.players.indexOf(p) + 1}`;
+}
+const roleTagText = (p) => (isSub(p) ? `SUB ${ROLE_TAGS[p.role]}` : ROLE_TAGS[p.role]);
 // Bot lane pairings are tier list entries too: "pair:<pairId>", rendered as one "A & B" tile.
 const isPairKey = (key) => String(key).startsWith("pair:");
 const pairById = (id) => state.pairs.find((p) => p.id === id);
 // Player and pair entries live in the Player Pools tab; dropping them on a pool unranks them.
 const isOwnedKey = (key) => isPairKey(key) || !!parseKey(key).pid;
+// A hidden player (or the hidden pairings card) keeps its tier list entries in place, just not shown.
+function isHiddenKey(key) {
+  if (isPairKey(key)) return state.pairsHidden;
+  const { pid } = parseKey(key);
+  return !!(pid && playerById(pid)?.hidden);
+}
 
 let champions = {}; // id -> { id, name, img }
 let state = null;    // { title, rows: [{ id, label, color, items }], players: [{ id, name, role, champs }] }
@@ -42,12 +56,14 @@ function defaultState() {
     title: "League of Legends – All Champions Tier List",
     rows: DEFAULT_ROWS.map((r) => ({ id: uid(), ...r, items: [] })),
     players: defaultPlayers(),
+    subs: [],
     pairs: [],
+    pairsHidden: false,
   };
 }
 
 function defaultPlayers() {
-  return ROLES.map((role) => ({ id: uid(), name: "", role, champs: [] }));
+  return ROLES.map((role) => ({ id: uid(), name: "", role, champs: [], hidden: false }));
 }
 
 // ---------- Data ----------
@@ -108,12 +124,17 @@ function normalize(s) {
   // Always exactly 5 player slots; each pool holds known champions, no duplicates.
   const players = Array.isArray(s.players) ? s.players.slice(0, PLAYER_SLOTS) : [];
   while (players.length < PLAYER_SLOTS) players.push({ name: "", role: ROLES[players.length], champs: [] });
-  s.players = players.map((p, i) => ({
+  const cleanPlayer = (p, defaultRole) => ({
     id: p.id || uid(),
     name: typeof p.name === "string" ? p.name : "",
-    role: ROLES.includes(p.role) ? p.role : ROLES[i],
+    role: ROLES.includes(p.role) ? p.role : defaultRole,
     champs: [...new Set(Array.isArray(p.champs) ? p.champs : [])].filter((id) => champions[id]),
-  }));
+    hidden: !!p.hidden,
+  });
+  s.players = players.map((p, i) => cleanPlayer(p, ROLES[i]));
+  s.subs = (Array.isArray(s.subs) ? s.subs : []).filter((p) => p && typeof p === "object").map((p) => cleanPlayer(p, ROLES[0]));
+  s.pairsHidden = !!s.pairsHidden;
+  const everyone = [...s.players, ...s.subs];
 
   // Bot lane pairings: any two known champions; the same champion can be in many pairs.
   s.pairs = (Array.isArray(s.pairs) ? s.pairs : [])
@@ -136,7 +157,7 @@ function normalize(s) {
       const { id, pid } = parseKey(key);
       if (!champions[id]) return false;
       if (pid) {
-        const pl = s.players.find((x) => x.id === pid);
+        const pl = everyone.find((x) => x.id === pid);
         if (!pl || !pl.champs.includes(id)) return false;
       }
       seen.add(key);
@@ -198,12 +219,11 @@ function champEl(key) {
   el.innerHTML = `<img crossorigin="anonymous" src="${c.img}" alt="${c.name}" loading="lazy"><span class="name">${c.name}</span>`;
   const pl = pid && playerById(pid);
   if (pl) {
-    const idx = state.players.indexOf(pl);
     const tag = document.createElement("span");
     tag.className = `role-tag role-${pl.role.toLowerCase()}`;
-    tag.textContent = ROLE_TAGS[pl.role];
+    tag.textContent = roleTagText(pl);
     el.appendChild(tag);
-    el.title = `${c.name} — ${pl.name || `Player ${idx + 1}`} (${pl.role})`;
+    el.title = `${c.name} — ${playerLabel(pl)} (${isSub(pl) ? "Sub " : ""}${pl.role})`;
   }
   return el;
 }
@@ -232,7 +252,7 @@ function render() {
     label.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); label.blur(); } });
 
     const items = r.querySelector(".tier-items");
-    row.items.forEach((key) => {
+    row.items.filter((key) => !isHiddenKey(key)).forEach((key) => {
       const el = itemEl(key);
       el.appendChild(removeButton(`Remove ${el.title} from the tier list`, () => {
         // Unranks the entry: plain champions go back to the All Champions pool,
@@ -261,6 +281,23 @@ function render() {
   applySearch();
   updateCount();
   renderPlayers();
+  renderHiddenNote();
+}
+
+// A note under the toolbar so hidden entries are never a mystery.
+function renderHiddenNote() {
+  const hidden = allPlayers().filter((p) => p.hidden).map(playerLabel);
+  if (state.pairsHidden) hidden.push("Bot Lane Pairings");
+  const note = $("#hidden-note");
+  note.hidden = !hidden.length;
+  if (!hidden.length) return;
+  note.innerHTML = `<span>Hidden on the tier list: <strong></strong></span> <button type="button" class="link-btn">Show all</button>`;
+  note.querySelector("strong").textContent = hidden.join(", ");
+  note.querySelector("button").addEventListener("click", () => {
+    allPlayers().forEach((p) => (p.hidden = false));
+    state.pairsHidden = false;
+    save(); render();
+  });
 }
 
 // ---------- Player pools ----------
@@ -271,62 +308,113 @@ function tierOf() {
   return map;
 }
 
-function renderPlayers() {
-  const wrap = $("#players");
-  const tiers = tierOf();
-  wrap.innerHTML = "";
-  state.players.forEach((p, i) => {
-    const card = document.createElement("div");
-    card.className = "player-card";
-    card.dataset.id = p.id;
-    card.innerHTML = `
-      <div class="player-head">
-        <input class="player-name" maxlength="24" placeholder="Player ${i + 1}" aria-label="Player ${i + 1} name" />
-        <select class="player-role" aria-label="Role">${ROLES.map((r) => `<option${r === p.role ? " selected" : ""}>${r}</option>`).join("")}</select>
-        <span class="muted player-count">${p.champs.length} champ${p.champs.length === 1 ? "" : "s"}</span>
-        <button class="btn small" data-act="edit">Edit pool</button>
-      </div>
-      <div class="player-pool"></div>`;
-    const name = card.querySelector(".player-name");
-    name.value = p.name;
-    name.addEventListener("input", () => {
-      p.name = name.value; save();
-      // keep tile tooltips current without re-rendering (which would steal focus)
-      document.querySelectorAll(`#tierlist .champ[data-key$="|${p.id}"]`).forEach((el) => {
-        el.title = `${champions[el.dataset.id].name} — ${p.name || `Player ${i + 1}`} (${p.role})`;
-      });
-    });
-    card.querySelector(".player-role").addEventListener("change", (e) => { p.role = e.target.value; save(); render(); });
-    card.querySelector("[data-act=edit]").addEventListener("click", () => openPicker(p.id));
+const EYE = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>`;
+const EYE_OFF = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
 
-    const pool = card.querySelector(".player-pool");
-    if (!p.champs.length) {
-      pool.innerHTML = `<button class="empty-pool" data-act="edit">+ Add champions</button>`;
-      pool.querySelector("button").addEventListener("click", () => openPicker(p.id));
-    }
-    p.champs.forEach((id) => {
-      const el = champEl(id);
-      el.classList.add("pp");
-      el.dataset.owner = p.id;
-      addTierBadge(el, tiers[entryKey(id, p.id)]);
-      el.appendChild(removeButton(`Remove ${champions[id].name} from pool`, () => {
-        p.champs = p.champs.filter((c) => c !== id);
-        purgePlayerEntries();
-        save(); render();
-      }));
-      pool.appendChild(el);
-    });
-    wrap.appendChild(card);
-  });
+function visibilityButton(hidden, onToggle) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "btn small vis-toggle" + (hidden ? " off" : "");
+  b.title = hidden ? "Hidden from the tier list — click to show (the pool and positions are kept)" : "Shown on the tier list — click to hide (the pool and positions are kept)";
+  b.innerHTML = `${hidden ? EYE_OFF : EYE}<span>${hidden ? "Hidden" : "Shown"}</span>`;
+  b.addEventListener("click", onToggle);
+  return b;
+}
+
+function renderPlayers() {
+  const tiers = tierOf();
+  const wrap = $("#players");
+  wrap.innerHTML = "";
+  state.players.forEach((p) => wrap.appendChild(playerCard(p, tiers)));
+
   const pairs = $("#pairs");
   pairs.innerHTML = "";
   pairs.appendChild(pairsCard(tiers));
+
+  const subs = $("#subs");
+  subs.innerHTML = "";
+  state.subs.forEach((p) => subs.appendChild(playerCard(p, tiers)));
+  $("#subs-empty").hidden = state.subs.length > 0;
 }
+
+function playerCard(p, tiers) {
+  const sub = isSub(p);
+  const placeholder = sub ? `Substitute ${state.subs.indexOf(p) + 1}` : `Player ${state.players.indexOf(p) + 1}`;
+  const card = document.createElement("div");
+  card.className = "player-card" + (sub ? " sub-card" : "") + (p.hidden ? " is-hidden" : "");
+  card.dataset.id = p.id;
+  card.innerHTML = `
+    <div class="player-head">
+      ${sub ? `<span class="sub-badge">SUB</span>` : ""}
+      <input class="player-name" maxlength="24" placeholder="${placeholder}" aria-label="${placeholder} name" />
+      <select class="player-role" aria-label="Role">${ROLES.map((r) => `<option${r === p.role ? " selected" : ""}>${r}</option>`).join("")}</select>
+      <span class="muted player-count">${p.champs.length} champ${p.champs.length === 1 ? "" : "s"}</span>
+      <span class="head-actions"><button class="btn small" data-act="edit">Edit pool</button></span>
+    </div>
+    <div class="player-pool"></div>`;
+  const actions = card.querySelector(".head-actions");
+  actions.prepend(visibilityButton(p.hidden, () => { p.hidden = !p.hidden; save(); render(); }));
+  if (sub) {
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "btn small danger";
+    del.title = "Delete this substitute slot";
+    del.textContent = "Delete";
+    del.addEventListener("click", () => {
+      if (p.champs.length && !confirm(`Delete ${playerLabel(p)}? Their pool and tier list entries will be removed.`)) return;
+      state.subs = state.subs.filter((x) => x !== p);
+      purgePlayerEntries();
+      save(); render();
+    });
+    actions.appendChild(del);
+  }
+
+  const name = card.querySelector(".player-name");
+  name.value = p.name;
+  name.addEventListener("input", () => {
+    p.name = name.value; save();
+    // keep tile tooltips current without re-rendering (which would steal focus)
+    document.querySelectorAll(`#tierlist .champ[data-key$="|${p.id}"]`).forEach((el) => {
+      el.title = `${champions[el.dataset.id].name} — ${playerLabel(p)} (${sub ? "Sub " : ""}${p.role})`;
+    });
+    renderHiddenNote();
+  });
+  card.querySelector(".player-role").addEventListener("change", (e) => { p.role = e.target.value; save(); render(); });
+  card.querySelector("[data-act=edit]").addEventListener("click", () => openPicker(p.id));
+
+  const pool = card.querySelector(".player-pool");
+  if (!p.champs.length) {
+    pool.innerHTML = `<button class="empty-pool" data-act="edit">+ Add champions</button>`;
+    pool.querySelector("button").addEventListener("click", () => openPicker(p.id));
+  }
+  p.champs.forEach((id) => {
+    const el = champEl(id);
+    el.classList.add("pp");
+    el.dataset.owner = p.id;
+    addTierBadge(el, tiers[entryKey(id, p.id)]);
+    el.appendChild(removeButton(`Remove ${champions[id].name} from pool`, () => {
+      p.champs = p.champs.filter((c) => c !== id);
+      purgePlayerEntries();
+      save(); render();
+    }));
+    pool.appendChild(el);
+  });
+  return card;
+}
+
+$("#add-sub").addEventListener("click", () => {
+  const p = { id: uid(), name: "", role: ROLES[0], champs: [], hidden: false };
+  state.subs.push(p);
+  save(); render();
+  const input = document.querySelector(`.player-card[data-id="${p.id}"] .player-name`);
+  input?.scrollIntoView({ block: "center", behavior: "smooth" });
+  input?.focus({ preventScroll: true });
+});
 
 // ---------- Bot lane pairings (6th slot) ----------
 function pairsCard(tiers) {
   const card = document.createElement("div");
-  card.className = "player-card pairs-card";
+  card.className = "player-card pairs-card" + (state.pairsHidden ? " is-hidden" : "");
   card.innerHTML = `
     <div class="player-head">
       <span class="pairs-title">Pairs</span>
@@ -335,6 +423,9 @@ function pairsCard(tiers) {
     </div>
     <div class="player-pool"></div>`;
   card.querySelector("[data-act=new-pair]").addEventListener("click", openPairDialog);
+  card.querySelector("[data-act=new-pair]").before(visibilityButton(state.pairsHidden, () => {
+    state.pairsHidden = !state.pairsHidden; save(); render();
+  }));
   const pool = card.querySelector(".player-pool");
   if (!state.pairs.length) {
     pool.innerHTML = `<button class="empty-pool">+ Create a bot lane pair</button>`;
@@ -383,7 +474,7 @@ function renderPairDialog() {
   document.querySelectorAll("#pair-filters .chip").forEach((c) => c.classList.toggle("active", c.dataset.filter === pairFilter));
   let ids = Object.keys(champions);
   if (pairFilter !== "all") {
-    const pool = new Set(state.players.filter((p) => p.role === pairFilter).flatMap((p) => p.champs));
+    const pool = new Set(allPlayers().filter((p) => p.role === pairFilter).flatMap((p) => p.champs));
     ids = ids.filter((id) => pool.has(id));
   }
   const q = $("#pair-search").value.trim().toLowerCase();
@@ -435,9 +526,8 @@ $("#pair-add").addEventListener("click", (e) => {
 
 function openPicker(playerId) {
   editingPlayerId = playerId;
-  const p = state.players.find((x) => x.id === playerId);
-  const idx = state.players.indexOf(p);
-  $("#picker-title").textContent = `${p.name || `Player ${idx + 1}`}'s champion pool`;
+  const p = playerById(playerId);
+  $("#picker-title").textContent = `${playerLabel(p)}'s champion pool`;
   $("#picker-search").value = "";
   renderPicker();
   $("#picker-dialog").showModal();
@@ -445,7 +535,7 @@ function openPicker(playerId) {
 }
 
 function renderPicker() {
-  const p = state.players.find((x) => x.id === editingPlayerId);
+  const p = playerById(editingPlayerId);
   if (!p) return;
   const q = $("#picker-search").value.trim().toLowerCase();
   const grid = $("#picker-grid");
@@ -467,7 +557,7 @@ function renderPicker() {
 
 $("#picker-grid").addEventListener("click", (e) => {
   const b = e.target.closest(".pick");
-  const p = state.players.find((x) => x.id === editingPlayerId);
+  const p = playerById(editingPlayerId);
   if (!b || !p) return;
   const id = b.dataset.id;
   if (p.champs.includes(id)) p.champs = p.champs.filter((c) => c !== id);
@@ -577,7 +667,7 @@ function tileLabel(key) {
   }
   const { id, pid } = parseKey(key);
   const pl = pid && playerById(pid);
-  return pl ? `${champions[id].name} (${ROLE_TAGS[pl.role]})` : champions[id].name;
+  return pl ? `${champions[id].name} (${roleTagText(pl)})` : champions[id].name;
 }
 
 function openTierMenu(key, x, y) {
@@ -628,7 +718,7 @@ function sendToTier(key, rowId) {
 }
 
 document.addEventListener("dblclick", (e) => {
-  if (e.target.closest(".remove")) return;
+  if (e.target.closest(".remove") || e.target.closest(".is-hidden")) return;
   const tile = e.target.closest(".champ");
   const key = tile && keyForTile(tile);
   if (!key) return;
@@ -679,6 +769,11 @@ let drag = null; // { el, ghost, offsetX, offsetY, startX, startY, active }
 document.addEventListener("pointerdown", (e) => {
   const source = e.target.closest(".champ");
   if (!source || e.button > 0 || e.target.closest(".remove")) return;
+  if (source.closest(".is-hidden")) {
+    e.preventDefault();
+    toast("This pool is hidden from the tier list — click Hidden to show it first");
+    return;
+  }
   // A tile in a player's pool stays put: dragging it places (or moves, if already ranked)
   // that player's own entry for the champion, tagged with their role.
   let el = source;
@@ -786,7 +881,25 @@ document.addEventListener("pointercancel", endDrag);
 function syncFromDom() {
   document.querySelectorAll(".tier-row").forEach((rEl) => {
     const row = state.rows.find((r) => r.id === rEl.dataset.id);
-    row.items = [...rEl.querySelectorAll(".champ")].map((c) => c.dataset.key);
+    // Hidden entries aren't in the DOM. Each one stays right after the tile it
+    // followed before (or at the start of the row), so it reappears in the same spot.
+    const visible = [...rEl.querySelectorAll(".champ")].map((c) => c.dataset.key);
+    const after = new Map(); // anchor key (null = row start) -> hidden keys
+    let anchor = null;
+    row.items.forEach((key) => {
+      if (isHiddenKey(key)) {
+        if (!after.has(anchor)) after.set(anchor, []);
+        after.get(anchor).push(key);
+      } else anchor = key;
+    });
+    const merged = [...(after.get(null) || [])];
+    after.delete(null);
+    visible.forEach((key) => {
+      merged.push(key, ...(after.get(key) || []));
+      after.delete(key);
+    });
+    after.forEach((keys) => merged.push(...keys)); // their anchor left this row
+    row.items = merged;
   });
   save();
   updateCount();
@@ -872,9 +985,10 @@ $("#search").addEventListener("input", applySearch);
 $("#btn-add-row").addEventListener("click", () => addRow(state.rows.length));
 
 $("#btn-reset").addEventListener("click", () => {
-  if (!confirm("Reset the tier list? All champions go back to the pool and rows return to S–D. Player pools and bot lane pairs are kept.")) return;
-  const { players, pairs } = state;
-  state = defaultState(); state.players = players; state.pairs = pairs; save(); render();
+  if (!confirm("Reset the tier list? All champions go back to the pool and rows return to S–D. Player pools, substitutes and bot lane pairs are kept.")) return;
+  const { players, subs, pairs, pairsHidden } = state;
+  state = { ...defaultState(), players, subs, pairs, pairsHidden };
+  save(); render();
 });
 
 $("#btn-share").addEventListener("click", async () => {
