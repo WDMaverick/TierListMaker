@@ -471,7 +471,7 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
 :root {
   /* Sides in WTL colours: blue team = WTL blue, red team = WTL magenta. --*-text are readable on navy. */
   --team-blue: var(--blue); --team-blue-text: #7d7dff; --team-blue-glow: rgba(35, 35, 242, .55);
-  --team-red: var(--magenta); --team-red-text: var(--magenta); --team-red-glow: rgba(255, 96, 255, .35);
+  --team-red: var(--magenta); --team-red-text: #ff4d5e; /* the "Red Team" name stays red */ --team-red-glow: rgba(255, 96, 255, .35);
 }
 .draft { display: grid; grid-template-columns: 300px minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
 .team-panel {
@@ -578,18 +578,18 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
 }
 .dchamp-art {
   width: 100%; aspect-ratio: 1; border-radius: 7px; overflow: hidden; display: block;
-  border: 2px solid var(--line-strong); background: var(--sunk); transition: border-color .12s, transform .12s;
+  border: 2px solid var(--magenta); background: var(--sunk); transition: border-color .12s, transform .12s, box-shadow .12s;
 }
 .dchamp-art img { width: 100%; height: 100%; display: block; }
 .dchamp-name { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dchamp:hover .dchamp-art { border-color: var(--primary); transform: translateY(-1px); }
+.dchamp:hover .dchamp-art { border-color: #fff; transform: translateY(-1px); }
 /* The previewed champion takes the colour of the side that's picking */
-.dchamp.selected .dchamp-art { border-color: var(--team-blue-text); box-shadow: 0 0 0 2px var(--team-blue-glow); }
-.draft[data-turn="red"] .dchamp.selected .dchamp-art { border-color: var(--team-red); box-shadow: 0 0 0 2px var(--team-red-glow); }
+.dchamp.selected .dchamp-art { border-color: #fff; box-shadow: 0 0 0 3px var(--team-blue), 0 0 16px var(--team-blue-glow); }
+.draft[data-turn="red"] .dchamp.selected .dchamp-art { box-shadow: 0 0 0 3px var(--team-red), 0 0 16px var(--team-red-glow); }
 .dchamp.selected .dchamp-name { color: #fff; }
 .dchamp.taken { cursor: not-allowed; opacity: .35; }
 .dchamp.taken img { filter: grayscale(1); }
-.dchamp.taken:hover .dchamp-art { border-color: var(--line-strong); transform: none; }
+.dchamp.taken .dchamp-art, .dchamp.taken:hover .dchamp-art { border-color: var(--line-strong); transform: none; }
 .draft-empty { grid-column: 1 / -1; text-align: center; }
 
 /* Tier list under the draft (read-only, greys out picks and bans) */
