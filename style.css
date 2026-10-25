@@ -282,3 +282,6 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
 }
 .chip.active { background: var(--accent); border-color: var(--accent); color: #111; }
 #pair-dialog { width: min(760px, 94vw); }
+
+.pick.active { border-color: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,.35); color: var(--text); }
+.pick.active img { opacity: 1; }

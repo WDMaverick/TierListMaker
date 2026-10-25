@@ -386,7 +386,7 @@ function renderPairDialog() {
     ids = ids.filter((id) => pool.has(id));
   }
   const q = $("#pair-search").value.trim().toLowerCase();
-  if (q) ids = ids.filter((id) => champions[id].name.toLowerCase().includes(q));
+  if (q) ids = searchChampions(ids, q);
   const grid = $("#pair-grid");
   grid.innerHTML = ids.length ? "" : `<p class="muted">No champions here yet${pairFilter !== "all" ? ` — add some to your ${pairFilter} player's pool` : ""}.</p>`;
   ids.forEach((id) => {
@@ -399,6 +399,7 @@ function renderPairDialog() {
     b.innerHTML = `<img src="${c.img}" alt="" loading="lazy"><span>${c.name}</span>`;
     grid.appendChild(b);
   });
+  highlightFirstMatch($("#pair-search"), grid);
 }
 
 $("#pair-grid").addEventListener("click", (e) => {
@@ -416,6 +417,7 @@ $("#pair-grid").addEventListener("click", (e) => {
   $(`#pair-slot-${slot}`).addEventListener("click", () => { pairDraft[slot] = null; renderPairDialog(); })
 );
 $("#pair-search").addEventListener("input", renderPairDialog);
+keyboardPicker($("#pair-search"), $("#pair-grid"), renderPairDialog);
 $("#pair-filters").addEventListener("click", (e) => {
   const chip = e.target.closest(".chip");
   if (chip) { pairFilter = chip.dataset.filter; renderPairDialog(); }
@@ -448,8 +450,8 @@ function renderPicker() {
   const grid = $("#picker-grid");
   const selected = new Set(p.champs);
   grid.innerHTML = "";
-  Object.values(champions).forEach((c) => {
-    if (q && !c.name.toLowerCase().includes(q)) return;
+  const ids = q ? searchChampions(Object.keys(champions), q) : Object.keys(champions);
+  ids.map((id) => champions[id]).forEach((c) => {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "pick" + (selected.has(c.id) ? " selected" : "");
@@ -459,6 +461,7 @@ function renderPicker() {
     grid.appendChild(b);
   });
   $("#picker-count").textContent = `${p.champs.length} selected`;
+  highlightFirstMatch($("#picker-search"), grid);
 }
 
 $("#picker-grid").addEventListener("click", (e) => {
@@ -473,6 +476,75 @@ $("#picker-grid").addEventListener("click", (e) => {
   save();
 });
 $("#picker-search").addEventListener("input", renderPicker);
+keyboardPicker($("#picker-search"), $("#picker-grid"), renderPicker);
+
+// ---------- Keyboard selection in champion pickers ----------
+// While typing, the first match is highlighted. Arrow keys move the highlight,
+// Enter picks it (same as clicking) and clears the search for the next champion.
+function searchChampions(ids, q) {
+  // Best matches first: name starts with the text ("ka" → Kai'Sa before Akali),
+  // then a word in the name starts with it ("sin" → Lee Sin), then anywhere in the name.
+  const norm = (t) => t.toLowerCase().replace(/['.]/g, "");
+  q = norm(q);
+  const rank = (name) => {
+    const n = norm(name);
+    if (n.startsWith(q)) return 0;
+    if (n.split(/[\s&]+/).some((w) => w.startsWith(q))) return 1;
+    return n.includes(q) ? 2 : -1;
+  };
+  return ids
+    .map((id) => ({ id, r: rank(champions[id].name) }))
+    .filter((x) => x.r >= 0)
+    .sort((a, b) => a.r - b.r || champions[a.id].name.localeCompare(champions[b.id].name))
+    .map((x) => x.id);
+}
+
+function highlightFirstMatch(input, grid) {
+  setActivePick(grid, input.value.trim() ? 0 : -1);
+}
+
+function setActivePick(grid, i) {
+  const picks = grid.querySelectorAll(".pick");
+  picks.forEach((p) => p.classList.remove("active"));
+  grid.dataset.active = i;
+  if (i >= 0 && picks[i]) {
+    picks[i].classList.add("active");
+    picks[i].scrollIntoView({ block: "nearest" });
+  }
+}
+
+function gridColumns(grid) {
+  const picks = grid.querySelectorAll(".pick");
+  if (!picks.length) return 1;
+  const top = picks[0].offsetTop;
+  let n = 0;
+  while (n < picks.length && picks[n].offsetTop === top) n++;
+  return n;
+}
+
+function keyboardPicker(input, grid, rerender) {
+  input.addEventListener("keydown", (e) => {
+    const picks = grid.querySelectorAll(".pick");
+    let i = Number(grid.dataset.active);
+    if (Number.isNaN(i)) i = -1;
+    const cols = gridColumns(grid);
+    const moves = { ArrowDown: cols, ArrowUp: -cols, ArrowRight: 1, ArrowLeft: -1 };
+
+    if (e.key in moves) {
+      // Left/Right only take over once something is highlighted, so they still move the text cursor otherwise.
+      if (!picks.length || (i < 0 && (e.key === "ArrowLeft" || e.key === "ArrowRight"))) return;
+      e.preventDefault();
+      setActivePick(grid, i < 0 ? 0 : Math.min(picks.length - 1, Math.max(0, i + moves[e.key])));
+    } else if (e.key === "Enter") {
+      e.preventDefault(); // don't submit (close) the dialog
+      if (i < 0 || !picks[i]) return;
+      picks[i].click();
+      input.value = "";
+      rerender();
+      input.focus();
+    }
+  });
+}
 $("#picker-dialog").addEventListener("close", () => { editingPlayerId = null; purgePlayerEntries(); save(); render(); });
 
 function purgePlayerEntries() {
