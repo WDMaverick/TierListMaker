@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>League Tier List Maker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">TL</span>
+      <span>League Tier List Maker</span>
+    </div>
+    <div class="patch" id="patch">Loading champions…</div>
+  </header>
+
+  <main class="container">
+    <input id="title" class="title-input" value="League of Legends – All Champions Tier List" aria-label="Tier list title" />
+
+    <div class="toolbar">
+      <button id="btn-download" class="btn primary">Download Image</button>
+      <button id="btn-share" class="btn">Copy Share Link</button>
+      <button id="btn-export" class="btn">Export JSON</button>
+      <label class="btn">Import JSON<input id="file-import" type="file" accept="application/json" hidden /></label>
+      <button id="btn-add-row" class="btn">+ Add Row</button>
+      <button id="btn-reset" class="btn danger">Reset</button>
+    </div>
+
+    <div id="tierlist" class="tierlist"></div>
+
+    <section class="pool-wrap">
+      <div class="pool-header">
+        <h2>Champions <span id="pool-count" class="muted"></span></h2>
+        <input id="search" class="search" type="search" placeholder="Search champions…" />
+      </div>
+      <div id="pool" class="pool"></div>
+    </section>
+
+    <p class="hint">Drag champions into a tier (works with mouse and touch). Click a tier label to rename it, and the ⚙ to change its color or move, clear, or delete the row. Your list saves automatically in this browser.</p>
+  </main>
+
+  <dialog id="row-dialog">
+    <form method="dialog" class="dialog-body">
+      <h3>Row settings</h3>
+      <div class="swatches" id="swatches"></div>
+      <label class="field">Label
+        <textarea id="row-label" rows="2"></textarea>
+      </label>
+      <div class="dialog-actions">
+        <button type="button" class="btn" data-act="above">Add row above</button>
+        <button type="button" class="btn" data-act="below">Add row below</button>
+        <button type="button" class="btn" data-act="clear">Clear row images</button>
+        <button type="button" class="btn danger" data-act="delete">Delete row</button>
+      </div>
+      <button class="btn primary close" value="close">Done</button>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
