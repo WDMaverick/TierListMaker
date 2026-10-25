@@ -153,9 +153,11 @@
     const box = q("#draft-turn");
     if (!ref) {
       box.innerHTML = `<span class="turn-done">Draft complete</span>`;
+      delete q(".draft").dataset.turn;
       return;
     }
     const [side, kind] = ref.split(".");
+    q(".draft").dataset.turn = side;
     const step = SEQUENCE.indexOf(ref) + 1;
     box.innerHTML = `
       <span class="turn-chip b${side === "blue" ? " on" : ""}">B</span>

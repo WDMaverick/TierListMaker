@@ -468,7 +468,11 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
 .container.wide { max-width: 1560px; }
 
 /* ----- Draft ----- */
-:root { --team-blue: #6f86ff; --team-red: #ff5a6e; }
+:root {
+  /* Sides in WTL colours: blue team = WTL blue, red team = WTL magenta. --*-text are readable on navy. */
+  --team-blue: var(--blue); --team-blue-text: #7d7dff; --team-blue-glow: rgba(35, 35, 242, .55);
+  --team-red: var(--magenta); --team-red-text: var(--magenta); --team-red-glow: rgba(255, 96, 255, .35);
+}
 .draft { display: grid; grid-template-columns: 300px minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
 .team-panel {
   background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 18px 18px 20px;
@@ -477,9 +481,9 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
 .team-panel.red { border-top-color: var(--team-red); text-align: right; }
 .team-name {
   width: 100%; background: none; border: 1px solid transparent; border-radius: 4px; padding: 2px 6px; margin: 0 0 10px -6px;
-  font: 700 30px/1.15 var(--font-display); text-transform: uppercase; letter-spacing: .03em; color: var(--team-blue);
+  font: 700 30px/1.15 var(--font-display); text-transform: uppercase; letter-spacing: .03em; color: var(--team-blue-text);
 }
-.team-panel.red .team-name { color: var(--team-red); text-align: right; margin: 0 -6px 10px 0; }
+.team-panel.red .team-name { color: var(--team-red-text); text-align: right; margin: 0 -6px 10px 0; }
 .team-name:hover { border-color: var(--line-strong); }
 .team-name:focus { outline: none; border-color: var(--primary); }
 .team-sub { margin: 14px 0 10px; font: 600 13px/1 var(--font-display); letter-spacing: .18em; text-transform: uppercase; color: var(--soft); }
@@ -511,8 +515,8 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
 .pick-slot.filled .pick-name { color: var(--text); font-weight: 700; }
 .ban-slot:hover, .pick-slot:hover { border-color: var(--line-strong); }
 
-.blue .active { border-color: var(--team-blue); box-shadow: 0 0 0 1px var(--team-blue), 0 0 18px rgba(111, 134, 255, .35); }
-.red .active { border-color: var(--team-red); box-shadow: 0 0 0 1px var(--team-red), 0 0 18px rgba(255, 90, 110, .35); }
+.blue .active { border-color: var(--team-blue); box-shadow: 0 0 0 1px var(--team-blue), 0 0 18px var(--team-blue-glow); }
+.red .active { border-color: var(--team-red); box-shadow: 0 0 0 1px var(--team-red), 0 0 18px var(--team-red-glow); }
 .previewing img { opacity: .55; }
 .previewing .pick-name { color: var(--soft); font-style: italic; }
 .slot-clear {
@@ -554,13 +558,13 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
   padding: 5px 7px; border-radius: 4px; color: #fff; opacity: .3;
 }
 .turn-chip.b { background: var(--team-blue); }
-.turn-chip.r { background: var(--team-red); }
+.turn-chip.r { background: var(--team-red); color: var(--navy); }
 .turn-chip.on { opacity: 1; }
 .turn-chip.kind { opacity: 1; background: none; border: 1px solid currentColor; }
-.turn-chip.kind.ban { color: var(--team-red); }
-.turn-chip.kind.pick { color: #5fd08f; }
+.turn-chip.kind.ban { color: var(--magenta); }
+.turn-chip.kind.pick { color: var(--soft); }
 .turn-text { font-size: 13px; color: var(--soft); margin-left: 4px; }
-.turn-done { font: 600 15px var(--font-display); letter-spacing: .08em; text-transform: uppercase; color: #5fd08f; }
+.turn-done { font: 600 15px var(--font-display); letter-spacing: .08em; text-transform: uppercase; color: var(--magenta); }
 .draft-actions { display: flex; gap: 6px; }
 .draft-help { margin: 0 0 12px; font-size: 12px; color: var(--muted); }
 
@@ -579,7 +583,9 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
 .dchamp-art img { width: 100%; height: 100%; display: block; }
 .dchamp-name { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dchamp:hover .dchamp-art { border-color: var(--primary); transform: translateY(-1px); }
-.dchamp.selected .dchamp-art { border-color: var(--magenta); box-shadow: 0 0 0 2px rgba(255, 96, 255, .35); }
+/* The previewed champion takes the colour of the side that's picking */
+.dchamp.selected .dchamp-art { border-color: var(--team-blue-text); box-shadow: 0 0 0 2px var(--team-blue-glow); }
+.draft[data-turn="red"] .dchamp.selected .dchamp-art { border-color: var(--team-red); box-shadow: 0 0 0 2px var(--team-red-glow); }
 .dchamp.selected .dchamp-name { color: #fff; }
 .dchamp.taken { cursor: not-allowed; opacity: .35; }
 .dchamp.taken img { filter: grayscale(1); }
@@ -613,9 +619,9 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
   position: absolute; right: 3px; bottom: 3px; padding: 1px 5px; border-radius: 3px;
   font: 700 11px/15px var(--font-display); letter-spacing: .06em; color: #fff;
 }
-.taken-mark.ban { background: #b8323f; }
+.taken-mark.ban { background: var(--charcoal, #2E2E2E); color: var(--soft); box-shadow: inset 0 0 0 1px var(--grey, #A1A1A1); }
 .taken-mark.blue { background: var(--team-blue); }
-.taken-mark.red { background: var(--team-red); }
+.taken-mark.red { background: var(--team-red); color: var(--navy); }
 
 @media (max-width: 1150px) {
   .draft { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
