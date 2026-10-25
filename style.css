@@ -410,3 +410,21 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
   .patch { display: none; }
   .account-name { display: none; }
 }
+
+/* ----- Player Pools tab: WTL bright blue controls ----- */
+#panel-players .btn:not(.danger),
+#panel-players .player-role {
+  background: var(--primary); border-color: var(--primary); color: #fff;
+}
+#panel-players .btn:not(.danger):hover,
+#panel-players .player-role:hover {
+  background: var(--primary-hover); border-color: var(--primary-hover);
+}
+#panel-players .player-role {
+  font: 600 14px/1 var(--font-display); text-transform: uppercase; letter-spacing: .06em;
+  padding: 8px 8px; border-radius: 4px; cursor: pointer;
+}
+#panel-players .player-role option { background: var(--overlay); color: var(--text); }
+/* "Hidden" stays recognisable: outlined in blue instead of filled */
+#panel-players .vis-toggle.off { background: transparent; border: 1px dashed var(--primary); color: var(--muted); }
+#panel-players .vis-toggle.off:hover { background: rgba(35, 35, 242, .15); color: #fff; }
