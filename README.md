@@ -16,10 +16,11 @@ A TierMaker-style tier list builder for League of Legends, made for ranking cham
 - Copy a share link that opens the exact same list for a teammate
 - Export / import tier lists as JSON
 - Autosaves in the browser
+- **Google sign-in** (top right): save tier lists to your account, autosave them, and open them on any device
 
 ## Run it
 
-It's a static site with no build step. Open `index.html`, or serve the folder:
+It's a static site with no build step. Serve the folder (sign-in needs a web server, not a `file://` page):
 
 ```bash
 python3 -m http.server 8000
@@ -34,3 +35,29 @@ League of Legends and champion images are © Riot Games. This project isn't endo
 ## Updating
 
 `index.html` loads `style.css?v=…` and `app.js?v=…`. Bump that version whenever you change those files, so browsers fetch the new code instead of a cached copy.
+
+## Accounts (Google sign-in)
+
+Sign-in and saved lists use [Firebase](https://firebase.google.com/) (free Spark plan). One-time setup:
+
+1. Go to the [Firebase console](https://console.firebase.google.com/), click **Add project**, and create it (Google Analytics is optional).
+2. **Build → Authentication → Get started → Sign-in method → Google → Enable**, pick a support email, and save.
+3. **Authentication → Settings → Authorized domains → Add domain**: `wdmaverick.github.io` (`localhost` is there by default).
+4. **Build → Firestore Database → Create database** (production mode, any location). Then open the **Rules** tab, replace everything with the rules below, and **Publish**:
+
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /users/{uid}/lists/{listId} {
+         allow read, write: if request.auth != null && request.auth.uid == uid;
+       }
+     }
+   }
+   ```
+
+5. **Project settings (⚙) → General → Your apps → Web (`</>`)**, register an app (no hosting needed), and copy the `firebaseConfig` object into `firebase-config.js` as `window.FIREBASE_CONFIG = { ... }`.
+
+The config values aren't secret; the rules above make sure each person can only read and write their own lists.
+
+How it works: each list is stored at `users/{uid}/lists/{listId}`. After you save a list to your account (or open one), every change autosaves to it. Opening the site on another device and signing in shows your saved lists. If two devices edit the same list at once, the last save wins.

@@ -84,9 +84,16 @@ async function loadChampions() {
 }
 
 // ---------- Persistence ----------
+const changeListeners = [];
 function save() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
+  changeListeners.forEach((fn) => { try { fn(); } catch (err) { console.error(err); } });
 }
+
+// Detaching tells the account code that the list on screen no longer belongs to a
+// saved cloud list (it came from a share link or an imported file).
+let loadedFromShareLink = false;
+const detachFromCloud = () => window.dispatchEvent(new Event("tl:detach"));
 
 function encodeState(s) {
   return btoa(unescape(encodeURIComponent(JSON.stringify(s))));
@@ -107,6 +114,7 @@ function loadState() {
       const s = decodeState(decodeURIComponent(m[1]));
       if (validState(s)) {
         history.replaceState(null, "", location.pathname + location.search);
+        loadedFromShareLink = true;
         return normalize(s);
       }
     } catch (_) {}
@@ -670,8 +678,10 @@ function tileLabel(key) {
   return pl ? `${champions[id].name} (${roleTagText(pl)})` : champions[id].name;
 }
 
+let menuScrollY = 0;
 function openTierMenu(key, x, y) {
   menuKey = key;
+  menuScrollY = window.scrollY;
   const current = state.rows.find((r) => r.items.includes(key));
   const menu = $("#tier-menu");
   menu.innerHTML = `<div class="menu-title"></div>`;
@@ -748,7 +758,10 @@ document.addEventListener("pointerdown", (e) => {
   if (!$("#tier-menu").hidden && !e.target.closest("#tier-menu")) closeTierMenu();
 }, true);
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#tier-menu").hidden) closeTierMenu(); });
-window.addEventListener("scroll", () => { if (!$("#tier-menu").hidden) closeTierMenu(); }, { passive: true });
+// Close on a real scroll, not a few pixels of trackpad drift.
+window.addEventListener("scroll", () => {
+  if (!$("#tier-menu").hidden && Math.abs(window.scrollY - menuScrollY) > 40) closeTierMenu();
+}, { passive: true });
 window.addEventListener("resize", closeTierMenu);
 
 // ---------- Tabs ----------
@@ -1008,6 +1021,7 @@ $("#file-import").addEventListener("change", async (e) => {
   try {
     const s = JSON.parse(await file.text());
     if (!validState(s)) throw new Error();
+    detachFromCloud();
     state = normalize(s); save(); render(); toast("Tier list imported");
   } catch (_) { toast("That file isn't a valid tier list"); }
   e.target.value = "";
@@ -1055,6 +1069,30 @@ function toast(msg) {
     return;
   }
   state = loadState();
+  if (loadedFromShareLink) detachFromCloud();
   save();
   render();
+  resolveReady();
 })();
+
+// ---------- Hooks for the account / cloud save code (cloud.js) ----------
+let resolveReady;
+window.TL = {
+  ready: new Promise((r) => (resolveReady = r)),
+  getState: () => JSON.parse(JSON.stringify(state)),
+  replaceState(s) {
+    if (!validState(s)) throw new Error("Not a valid tier list");
+    state = normalize(s);
+    save();
+    render();
+  },
+  newList() {
+    // A fresh list keeps the team (players, subs, pairs) but starts with empty S–D rows.
+    const { players, subs, pairs, pairsHidden } = state;
+    state = { ...defaultState(), players, subs, pairs, pairsHidden };
+    save();
+    render();
+  },
+  onChange: (fn) => changeListeners.push(fn),
+  toast: (msg) => toast(msg),
+};

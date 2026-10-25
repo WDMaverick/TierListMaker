@@ -6,7 +6,7 @@
   <title>League Tier List Maker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=202610251656" />
+  <link rel="stylesheet" href="style.css?v=202610251704" />
 </head>
 <body>
   <header class="topbar">
@@ -14,10 +14,14 @@
       <span class="logo">TL</span>
       <span>League Tier List Maker</span>
     </div>
-    <div class="patch" id="patch">Loading champions…</div>
+    <div class="topbar-right">
+      <div class="patch" id="patch">Loading champions…</div>
+      <div id="account" class="account"></div>
+    </div>
   </header>
 
   <main class="container">
+    <div id="cloud-status" class="cloud-status" hidden></div>
     <input id="title" class="title-input" value="League of Legends – All Champions Tier List" aria-label="Tier list title" />
 
     <div class="toolbar">
@@ -68,6 +72,26 @@
 
     <p class="hint">Drag champions into a tier (works with mouse and touch). Click a tier label to rename it, and the ⚙ to change its color or move, clear, or delete the row. Your list saves automatically in this browser.</p>
   </main>
+
+  <dialog id="lists-dialog">
+    <form method="dialog" class="dialog-body">
+      <h3>My tier lists</h3>
+      <div class="lists-actions">
+        <button type="button" class="btn primary" id="lists-save">Save current list</button>
+        <button type="button" class="btn" id="lists-new">+ New blank list</button>
+      </div>
+      <div id="lists-body" class="lists-body"></div>
+      <button class="btn close" value="close">Close</button>
+    </form>
+  </dialog>
+
+  <dialog id="setup-dialog">
+    <form method="dialog" class="dialog-body">
+      <h3>Accounts aren't set up yet</h3>
+      <p class="muted">Signing in with Google and saving tier lists to an account needs a free Firebase project connected to this site. The steps are in the project's README under “Accounts (Google sign-in)”.</p>
+      <button class="btn primary close" value="close">OK</button>
+    </form>
+  </dialog>
 
   <dialog id="pair-dialog">
     <form method="dialog" class="dialog-body picker">
@@ -125,6 +149,8 @@
   <div id="toast" class="toast"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="app.js?v=202610251656"></script>
+  <script src="firebase-config.js?v=202610251704"></script>
+  <script src="app.js?v=202610251704"></script>
+  <script type="module" src="cloud.js?v=202610251704"></script>
 </body>
 </html>
