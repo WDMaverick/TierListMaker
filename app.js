@@ -231,7 +231,16 @@ function render() {
     label.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); label.blur(); } });
 
     const items = r.querySelector(".tier-items");
-    row.items.forEach((key) => items.appendChild(itemEl(key)));
+    row.items.forEach((key) => {
+      const el = itemEl(key);
+      el.appendChild(removeButton(`Remove ${el.title} from the tier list`, () => {
+        // Unranks the entry: plain champions go back to the All Champions pool,
+        // player and pair entries stay available in the Player Pools tab.
+        row.items = row.items.filter((k) => k !== key);
+        save(); render();
+      }));
+      items.appendChild(el);
+    });
 
     r.querySelector(".row-settings").addEventListener("click", (e) => {
       const act = e.target.dataset.act;

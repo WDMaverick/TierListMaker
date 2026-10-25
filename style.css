@@ -63,6 +63,7 @@ body {
 .export-title { display: none; text-align: center; font-weight: 800; font-size: 26px; padding: 10px; background: var(--bg); }
 .exporting .export-title { display: block; }
 .exporting .row-settings { display: none; }
+.exporting .remove { display: none; }
 
 .tier-row { display: flex; min-height: var(--tile); border-bottom: 1px solid var(--border); background: var(--row-bg); }
 .tier-row:last-child { border-bottom: none; }
