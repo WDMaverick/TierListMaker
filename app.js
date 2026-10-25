@@ -924,13 +924,42 @@ function updateCount() {
   $("#pool-count").textContent = `(${left} of ${total} unranked)`;
 }
 
+// Role sub-tabs in "All Champions" (roles come from roles.js). The choice is a viewing
+// preference, so it's remembered in this browser rather than saved with the tier list.
+const ROLE_PREF_KEY = "lol-tierlist-pool-role";
+let poolRole = "all";
+try { poolRole = localStorage.getItem(ROLE_PREF_KEY) || "all"; } catch (_) {}
+
+const championRoles = (id) => (window.CHAMPION_ROLES && window.CHAMPION_ROLES[id]) || [];
+const inPoolRole = (id) => poolRole === "all" || championRoles(id).includes(poolRole);
+
 function applySearch() {
   const q = $("#search").value.trim().toLowerCase();
   $("#pool").querySelectorAll(".champ").forEach((el) => {
     const name = champions[el.dataset.id].name.toLowerCase();
-    el.classList.toggle("hidden", q && !name.includes(q));
+    el.classList.toggle("hidden", (q && !name.includes(q)) || !inPoolRole(el.dataset.id));
+  });
+  renderRoleTabs();
+}
+
+function renderRoleTabs() {
+  const unranked = [...$("#pool").querySelectorAll(".champ")].map((el) => el.dataset.id);
+  document.querySelectorAll("#role-tabs .seg").forEach((b) => {
+    const role = b.dataset.role;
+    const n = role === "all" ? unranked.length : unranked.filter((id) => championRoles(id).includes(role)).length;
+    const active = role === poolRole;
+    b.setAttribute("aria-selected", String(active));
+    b.innerHTML = `${role === "all" ? "All Roles" : role}<span class="seg-count">${n}</span>`;
   });
 }
+
+$("#role-tabs").addEventListener("click", (e) => {
+  const b = e.target.closest(".seg");
+  if (!b) return;
+  poolRole = b.dataset.role;
+  try { localStorage.setItem(ROLE_PREF_KEY, poolRole); } catch (_) {}
+  applySearch();
+});
 
 // ---------- Row operations ----------
 function moveRow(i, dir) {
