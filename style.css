@@ -239,13 +239,17 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
 
 /* ----- Bot lane pairs ----- */
 .champ.pair {
-  width: calc(var(--tile) * 2 + 20px);
+  width: calc(var(--tile) * 2 + 18px);
   display: flex; align-items: center; background: #2e2e26;
-  margin: 0 4px 0 0; border-radius: 4px; overflow: hidden;
-  box-shadow: inset 0 0 0 1px var(--accent);
 }
-.champ.pair + .champ:not(.pair) { margin-left: 0; }
-.champ.pair img { width: calc(var(--tile) - 2px); height: calc(var(--tile) - 2px); flex-shrink: 0; margin: 1px; }
+.champ.pair img { width: calc(var(--tile) - 2px); height: 100%; flex-shrink: 0; }
+
+/* Gold outline on every tile in the tier list (single champions and pairs alike),
+   and on pairs in the Player Pools tab. A real border, so it shows in PNG downloads too. */
+#tierlist .champ, .champ.pair {
+  box-sizing: border-box; border: 1px solid var(--accent);
+  border-radius: 4px; overflow: hidden; margin: 0 4px 0 0;
+}
 .amp {
   width: 20px; flex-shrink: 0; text-align: center;
   color: var(--accent); font-weight: 800; font-size: 18px; line-height: 1;
