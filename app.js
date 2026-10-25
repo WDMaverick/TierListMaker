@@ -14,9 +14,13 @@ const DEFAULT_ROWS = [
   { label: "D", color: "#bfff7f" },
 ];
 
+const ROLES = ["Top", "Jungle", "Mid", "Bot", "Support"];
+const PLAYER_SLOTS = 5;
+
 let champions = {}; // id -> { id, name, img }
-let state = null;    // { title, rows: [{ id, label, color, items: [champId] }] }
+let state = null;    // { title, rows: [{ id, label, color, items }], players: [{ id, name, role, champs }] }
 let editingRowId = null;
+let editingPlayerId = null;
 
 const $ = (sel) => document.querySelector(sel);
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -25,7 +29,12 @@ function defaultState() {
   return {
     title: "League of Legends – All Champions Tier List",
     rows: DEFAULT_ROWS.map((r) => ({ id: uid(), ...r, items: [] })),
+    players: defaultPlayers(),
   };
+}
+
+function defaultPlayers() {
+  return ROLES.map((role) => ({ id: uid(), name: "", role, champs: [] }));
 }
 
 // ---------- Data ----------
@@ -90,6 +99,16 @@ function normalize(s) {
     r.items = r.items.filter((id) => champions[id] && !seen.has(id) && seen.add(id));
   });
   s.title = s.title || defaultState().title;
+
+  // Always exactly 5 player slots; each pool holds known champions, no duplicates.
+  const players = Array.isArray(s.players) ? s.players.slice(0, PLAYER_SLOTS) : [];
+  while (players.length < PLAYER_SLOTS) players.push({ name: "", role: ROLES[players.length], champs: [] });
+  s.players = players.map((p, i) => ({
+    id: p.id || uid(),
+    name: typeof p.name === "string" ? p.name : "",
+    role: ROLES.includes(p.role) ? p.role : ROLES[i],
+    champs: [...new Set(Array.isArray(p.champs) ? p.champs : [])].filter((id) => champions[id]),
+  }));
   return s;
 }
 
@@ -147,17 +166,143 @@ function render() {
 
   applySearch();
   updateCount();
+  renderPlayers();
 }
+
+// ---------- Player pools ----------
+function tierOf() {
+  // champId -> row, for the tier badges on player pool tiles
+  const map = {};
+  state.rows.forEach((r) => r.items.forEach((id) => (map[id] = r)));
+  return map;
+}
+
+function renderPlayers() {
+  const wrap = $("#players");
+  const tiers = tierOf();
+  wrap.innerHTML = "";
+  state.players.forEach((p, i) => {
+    const card = document.createElement("div");
+    card.className = "player-card";
+    card.dataset.id = p.id;
+    card.innerHTML = `
+      <div class="player-head">
+        <input class="player-name" maxlength="24" placeholder="Player ${i + 1}" aria-label="Player ${i + 1} name" />
+        <select class="player-role" aria-label="Role">${ROLES.map((r) => `<option${r === p.role ? " selected" : ""}>${r}</option>`).join("")}</select>
+        <span class="muted player-count">${p.champs.length} champ${p.champs.length === 1 ? "" : "s"}</span>
+        <button class="btn small" data-act="edit">Edit pool</button>
+      </div>
+      <div class="player-pool"></div>`;
+    const name = card.querySelector(".player-name");
+    name.value = p.name;
+    name.addEventListener("input", () => { p.name = name.value; save(); });
+    card.querySelector(".player-role").addEventListener("change", (e) => { p.role = e.target.value; save(); });
+    card.querySelector("[data-act=edit]").addEventListener("click", () => openPicker(p.id));
+
+    const pool = card.querySelector(".player-pool");
+    if (!p.champs.length) {
+      pool.innerHTML = `<button class="empty-pool" data-act="edit">+ Add champions</button>`;
+      pool.querySelector("button").addEventListener("click", () => openPicker(p.id));
+    }
+    p.champs.forEach((id) => {
+      const el = champEl(id);
+      el.classList.add("pp");
+      const row = tiers[id];
+      if (row) {
+        const badge = document.createElement("span");
+        badge.className = "tier-badge";
+        badge.textContent = row.label.trim().slice(0, 3) || "•";
+        badge.style.background = row.color;
+        badge.title = `Ranked in ${row.label || "a tier"}`;
+        el.appendChild(badge);
+      }
+      const rm = document.createElement("button");
+      rm.className = "remove";
+      rm.title = `Remove ${champions[id].name} from pool`;
+      rm.textContent = "×";
+      rm.addEventListener("click", () => {
+        p.champs = p.champs.filter((c) => c !== id);
+        save(); renderPlayers();
+      });
+      el.appendChild(rm);
+      pool.appendChild(el);
+    });
+    wrap.appendChild(card);
+  });
+}
+
+function openPicker(playerId) {
+  editingPlayerId = playerId;
+  const p = state.players.find((x) => x.id === playerId);
+  const idx = state.players.indexOf(p);
+  $("#picker-title").textContent = `${p.name || `Player ${idx + 1}`}'s champion pool`;
+  $("#picker-search").value = "";
+  renderPicker();
+  $("#picker-dialog").showModal();
+  $("#picker-search").focus();
+}
+
+function renderPicker() {
+  const p = state.players.find((x) => x.id === editingPlayerId);
+  if (!p) return;
+  const q = $("#picker-search").value.trim().toLowerCase();
+  const grid = $("#picker-grid");
+  const selected = new Set(p.champs);
+  grid.innerHTML = "";
+  Object.values(champions).forEach((c) => {
+    if (q && !c.name.toLowerCase().includes(q)) return;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "pick" + (selected.has(c.id) ? " selected" : "");
+    b.dataset.id = c.id;
+    b.title = c.name;
+    b.innerHTML = `<img src="${c.img}" alt="" loading="lazy"><span>${c.name}</span>`;
+    grid.appendChild(b);
+  });
+  $("#picker-count").textContent = `${p.champs.length} selected`;
+}
+
+$("#picker-grid").addEventListener("click", (e) => {
+  const b = e.target.closest(".pick");
+  const p = state.players.find((x) => x.id === editingPlayerId);
+  if (!b || !p) return;
+  const id = b.dataset.id;
+  if (p.champs.includes(id)) p.champs = p.champs.filter((c) => c !== id);
+  else p.champs.push(id);
+  b.classList.toggle("selected");
+  $("#picker-count").textContent = `${p.champs.length} selected`;
+  save();
+});
+$("#picker-search").addEventListener("input", renderPicker);
+$("#picker-dialog").addEventListener("close", () => { editingPlayerId = null; renderPlayers(); });
+
+// ---------- Tabs ----------
+document.querySelectorAll(".tab").forEach((t) =>
+  t.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach((x) => {
+      x.classList.toggle("active", x === t);
+      x.setAttribute("aria-selected", x === t);
+    });
+    $("#panel-all").hidden = t.dataset.tab !== "all";
+    $("#panel-players").hidden = t.dataset.tab !== "players";
+  })
+);
 
 // ---------- Drag and drop (pointer events: mouse, pen and touch) ----------
 let drag = null; // { el, ghost, offsetX, offsetY, startX, startY, active }
 
 document.addEventListener("pointerdown", (e) => {
-  const el = e.target.closest(".champ");
-  if (!el || e.button > 0) return;
-  const rect = el.getBoundingClientRect();
+  const source = e.target.closest(".champ");
+  if (!source || e.button > 0 || e.target.closest(".remove")) return;
+  // A tile in a player's pool stays put: dragging it moves that champion's tile
+  // (from the All Champions pool, or wherever it's ranked) into the tier list.
+  const el = source.classList.contains("pp")
+    ? document.querySelector(`#tierlist .champ[data-id="${source.dataset.id}"], #pool .champ[data-id="${source.dataset.id}"]`)
+    : source;
+  if (!el) return;
+  const rect = source.getBoundingClientRect();
   drag = {
-    el, ghost: null, active: false,
+    el, source, ghost: null, active: false,
     startX: e.clientX, startY: e.clientY,
     offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top,
   };
@@ -169,10 +314,14 @@ document.addEventListener("pointermove", (e) => {
   if (!drag.active) {
     if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < 4) return;
     drag.active = true;
-    drag.ghost = drag.el.cloneNode(true);
+    drag.ghost = drag.source.cloneNode(true);
+    drag.ghost.classList.remove("pp");
+    drag.ghost.querySelectorAll(".remove, .tier-badge").forEach((n) => n.remove());
     drag.ghost.classList.add("drag-ghost");
     document.body.appendChild(drag.ghost);
+    drag.el.classList.remove("hidden"); // might be filtered out of the pool by the search box
     drag.el.classList.add("drag-placeholder");
+    drag.source.classList.add("drag-placeholder");
     document.body.classList.add("dragging");
   }
   drag.ghost.style.transform = `translate(${e.clientX - drag.offsetX}px, ${e.clientY - drag.offsetY}px)`;
@@ -205,9 +354,12 @@ function endDrag() {
   if (drag.active) {
     drag.ghost.remove();
     drag.el.classList.remove("drag-placeholder");
+    drag.source.classList.remove("drag-placeholder");
     document.body.classList.remove("dragging");
     document.querySelectorAll(".drop-target").forEach((z) => z.classList.remove("drop-target"));
     syncFromDom();
+    applySearch();
+    renderPlayers(); // refresh the tier badges
   }
   drag = null;
 }
@@ -303,8 +455,9 @@ $("#search").addEventListener("input", applySearch);
 $("#btn-add-row").addEventListener("click", () => addRow(state.rows.length));
 
 $("#btn-reset").addEventListener("click", () => {
-  if (!confirm("Reset the tier list? All champions go back to the pool and rows return to S–D.")) return;
-  state = defaultState(); save(); render();
+  if (!confirm("Reset the tier list? All champions go back to the pool and rows return to S–D. Player pools are kept.")) return;
+  const players = state.players;
+  state = defaultState(); state.players = players; save(); render();
 });
 
 $("#btn-share").addEventListener("click", async () => {

@@ -31,16 +31,38 @@
 
     <div id="tierlist" class="tierlist"></div>
 
-    <section class="pool-wrap">
+    <div class="tabs" role="tablist">
+      <button class="tab active" role="tab" data-tab="all" aria-selected="true">All Champions <span id="pool-count" class="muted"></span></button>
+      <button class="tab" role="tab" data-tab="players" aria-selected="false">Player Pools</button>
+    </div>
+
+    <section class="tab-panel pool-wrap" id="panel-all">
       <div class="pool-header">
-        <h2>Champions <span id="pool-count" class="muted"></span></h2>
+        <p class="muted">Drag any champion into a tier.</p>
         <input id="search" class="search" type="search" placeholder="Search champions…" />
       </div>
       <div id="pool" class="pool"></div>
     </section>
 
+    <section class="tab-panel" id="panel-players" hidden>
+      <p class="muted">Set up your 5 players and their champion pools. Drag a champion from a pool into the tier list — it stays in the player's pool, and the badge shows which tier it's in.</p>
+      <div id="players" class="players"></div>
+    </section>
+
     <p class="hint">Drag champions into a tier (works with mouse and touch). Click a tier label to rename it, and the ⚙ to change its color or move, clear, or delete the row. Your list saves automatically in this browser.</p>
   </main>
+
+  <dialog id="picker-dialog">
+    <form method="dialog" class="dialog-body picker">
+      <div class="picker-head">
+        <h3 id="picker-title">Champion pool</h3>
+        <span id="picker-count" class="muted"></span>
+      </div>
+      <input id="picker-search" class="search" type="search" placeholder="Search champions…" />
+      <div id="picker-grid" class="picker-grid"></div>
+      <button class="btn primary close" value="close">Done</button>
+    </form>
+  </dialog>
 
   <dialog id="row-dialog">
     <form method="dialog" class="dialog-body">
