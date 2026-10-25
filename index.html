@@ -45,12 +45,34 @@
     </section>
 
     <section class="tab-panel" id="panel-players" hidden>
-      <p class="muted">Set up your 5 players and their champion pools. Drag a champion from a pool into the tier list to rank it for that player — it gets a role tag (TOP, JGL, MID, BOT, SUP), so the same champion can be ranked once per player. The badge on a pool champion shows its tier; drag a tagged champion back here to unrank it.</p>
+      <p class="muted">Set up your 5 players and their champion pools. Drag a champion from a pool into the tier list to rank it for that player — it gets a role tag (TOP, JGL, MID, BOT, SUP), so the same champion can be ranked once per player. The badge on a pool champion shows its tier; drag a tagged champion back here to unrank it. Use <strong>Bot Lane Pairings</strong> at the bottom to build ADC &amp; Support duos that rank as a single tile.</p>
       <div id="players" class="players"></div>
     </section>
 
     <p class="hint">Drag champions into a tier (works with mouse and touch). Click a tier label to rename it, and the ⚙ to change its color or move, clear, or delete the row. Your list saves automatically in this browser.</p>
   </main>
+
+  <dialog id="pair-dialog">
+    <form method="dialog" class="dialog-body picker">
+      <h3>New bot lane pair</h3>
+      <div class="pair-builder">
+        <button type="button" class="pair-slot" id="pair-slot-a" title="Click to clear"><span class="slot-img">?</span><span class="slot-name">ADC</span></button>
+        <span class="amp big">&amp;</span>
+        <button type="button" class="pair-slot" id="pair-slot-b" title="Click to clear"><span class="slot-img">?</span><span class="slot-name">Support</span></button>
+        <button type="button" class="btn primary" id="pair-add" disabled>Add pair</button>
+      </div>
+      <div class="pair-tools">
+        <div class="chips" id="pair-filters">
+          <button type="button" class="chip active" data-filter="all">All champions</button>
+          <button type="button" class="chip" data-filter="Bot">Bot pool</button>
+          <button type="button" class="chip" data-filter="Support">Support pool</button>
+        </div>
+        <input id="pair-search" class="search" type="search" placeholder="Search champions…" />
+      </div>
+      <div id="pair-grid" class="picker-grid"></div>
+      <button class="btn close" value="close">Done</button>
+    </form>
+  </dialog>
 
   <dialog id="picker-dialog">
     <form method="dialog" class="dialog-body picker">

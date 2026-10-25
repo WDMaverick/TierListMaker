@@ -23,6 +23,11 @@ const ROLE_TAGS = { Top: "TOP", Jungle: "JGL", Mid: "MID", Bot: "BOT", Support: 
 const entryKey = (id, pid) => (pid ? `${id}|${pid}` : id);
 const parseKey = (key) => { const [id, pid] = String(key).split("|"); return { id, pid: pid || null }; };
 const playerById = (pid) => state.players.find((p) => p.id === pid);
+// Bot lane pairings are tier list entries too: "pair:<pairId>", rendered as one "A & B" tile.
+const isPairKey = (key) => String(key).startsWith("pair:");
+const pairById = (id) => state.pairs.find((p) => p.id === id);
+// Player and pair entries live in the Player Pools tab; dropping them on a pool unranks them.
+const isOwnedKey = (key) => isPairKey(key) || !!parseKey(key).pid;
 
 let champions = {}; // id -> { id, name, img }
 let state = null;    // { title, rows: [{ id, label, color, items }], players: [{ id, name, role, champs }] }
@@ -37,6 +42,7 @@ function defaultState() {
     title: "League of Legends – All Champions Tier List",
     rows: DEFAULT_ROWS.map((r) => ({ id: uid(), ...r, items: [] })),
     players: defaultPlayers(),
+    pairs: [],
   };
 }
 
@@ -109,6 +115,11 @@ function normalize(s) {
     champs: [...new Set(Array.isArray(p.champs) ? p.champs : [])].filter((id) => champions[id]),
   }));
 
+  // Bot lane pairings: any two known champions; the same champion can be in many pairs.
+  s.pairs = (Array.isArray(s.pairs) ? s.pairs : [])
+    .filter((p) => p && champions[p.a] && champions[p.b])
+    .map((p) => ({ id: p.id || uid(), a: p.a, b: p.b }));
+
   // Drop unknown champions, entries for champions no longer in that player's pool, and duplicates.
   const seen = new Set();
   s.rows.forEach((r) => {
@@ -116,8 +127,14 @@ function normalize(s) {
     r.color = r.color || "#cfcfcf";
     r.label = r.label ?? "";
     r.items = r.items.filter((key) => {
+      if (seen.has(key)) return false;
+      if (isPairKey(key)) {
+        if (!s.pairs.some((p) => `pair:${p.id}` === key)) return false;
+        seen.add(key);
+        return true;
+      }
       const { id, pid } = parseKey(key);
-      if (!champions[id] || seen.has(key)) return false;
+      if (!champions[id]) return false;
       if (pid) {
         const pl = s.players.find((x) => x.id === pid);
         if (!pl || !pl.champs.includes(id)) return false;
@@ -130,6 +147,45 @@ function normalize(s) {
 }
 
 // ---------- Rendering ----------
+function itemEl(key) {
+  return isPairKey(key) ? pairEl(key) : champEl(key);
+}
+
+function pairEl(key) {
+  const pair = pairById(key.slice(5));
+  const a = champions[pair.a], b = champions[pair.b];
+  const el = document.createElement("div");
+  el.className = "champ pair";
+  el.dataset.key = key;
+  el.dataset.pair = pair.id;
+  el.title = `${a.name} & ${b.name}`;
+  el.innerHTML = `
+    <img crossorigin="anonymous" src="${a.img}" alt="${a.name}" loading="lazy">
+    <span class="amp">&amp;</span>
+    <img crossorigin="anonymous" src="${b.img}" alt="${b.name}" loading="lazy">
+    <span class="name">${a.name} &amp; ${b.name}</span>`;
+  return el;
+}
+
+function addTierBadge(el, row) {
+  if (!row) return;
+  const badge = document.createElement("span");
+  badge.className = "tier-badge";
+  badge.textContent = row.label.trim().slice(0, 3) || "•";
+  badge.style.background = row.color;
+  badge.title = `Ranked in ${row.label || "a tier"}`;
+  el.appendChild(badge);
+}
+
+function removeButton(title, onClick) {
+  const rm = document.createElement("button");
+  rm.className = "remove";
+  rm.title = title;
+  rm.textContent = "×";
+  rm.addEventListener("click", onClick);
+  return rm;
+}
+
 function champEl(key) {
   const { id, pid } = parseKey(key);
   const c = champions[id];
@@ -175,7 +231,7 @@ function render() {
     label.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); label.blur(); } });
 
     const items = r.querySelector(".tier-items");
-    row.items.forEach((id) => items.appendChild(champEl(id)));
+    row.items.forEach((key) => items.appendChild(itemEl(key)));
 
     r.querySelector(".row-settings").addEventListener("click", (e) => {
       const act = e.target.dataset.act;
@@ -242,30 +298,126 @@ function renderPlayers() {
       const el = champEl(id);
       el.classList.add("pp");
       el.dataset.owner = p.id;
-      const row = tiers[entryKey(id, p.id)];
-      if (row) {
-        const badge = document.createElement("span");
-        badge.className = "tier-badge";
-        badge.textContent = row.label.trim().slice(0, 3) || "•";
-        badge.style.background = row.color;
-        badge.title = `Ranked in ${row.label || "a tier"}`;
-        el.appendChild(badge);
-      }
-      const rm = document.createElement("button");
-      rm.className = "remove";
-      rm.title = `Remove ${champions[id].name} from pool`;
-      rm.textContent = "×";
-      rm.addEventListener("click", () => {
+      addTierBadge(el, tiers[entryKey(id, p.id)]);
+      el.appendChild(removeButton(`Remove ${champions[id].name} from pool`, () => {
         p.champs = p.champs.filter((c) => c !== id);
         purgePlayerEntries();
         save(); render();
-      });
-      el.appendChild(rm);
+      }));
       pool.appendChild(el);
     });
     wrap.appendChild(card);
   });
+  wrap.appendChild(pairsCard(tiers));
 }
+
+// ---------- Bot lane pairings (6th slot) ----------
+function pairsCard(tiers) {
+  const card = document.createElement("div");
+  card.className = "player-card pairs-card";
+  card.innerHTML = `
+    <div class="player-head">
+      <span class="pairs-title">Bot Lane Pairings</span>
+      <span class="muted player-count">${state.pairs.length} pair${state.pairs.length === 1 ? "" : "s"}</span>
+      <button class="btn small" data-act="new-pair">+ New pair</button>
+    </div>
+    <div class="player-pool"></div>`;
+  card.querySelector("[data-act=new-pair]").addEventListener("click", openPairDialog);
+  const pool = card.querySelector(".player-pool");
+  if (!state.pairs.length) {
+    pool.innerHTML = `<button class="empty-pool">+ Create a bot lane pair</button>`;
+    pool.querySelector("button").addEventListener("click", openPairDialog);
+  }
+  state.pairs.forEach((pair) => {
+    const key = `pair:${pair.id}`;
+    const el = pairEl(key);
+    el.classList.add("pp");
+    addTierBadge(el, tiers[key]);
+    el.appendChild(removeButton("Delete this pair", () => {
+      state.pairs = state.pairs.filter((p) => p.id !== pair.id);
+      state.rows.forEach((r) => (r.items = r.items.filter((k) => k !== key)));
+      save(); render();
+    }));
+    pool.appendChild(el);
+  });
+  return card;
+}
+
+let pairDraft = { a: null, b: null };
+let pairFilter = "all";
+
+function openPairDialog() {
+  pairDraft = { a: null, b: null };
+  pairFilter = "all";
+  $("#pair-search").value = "";
+  renderPairDialog();
+  $("#pair-dialog").showModal();
+  $("#pair-search").focus();
+}
+
+function renderPairDialog() {
+  // The two slots
+  ["a", "b"].forEach((slot) => {
+    const el = $(`#pair-slot-${slot}`);
+    const c = champions[pairDraft[slot]];
+    el.classList.toggle("filled", !!c);
+    el.classList.toggle("next", !c && slot === (pairDraft.a ? "b" : "a"));
+    el.querySelector(".slot-img").innerHTML = c ? `<img src="${c.img}" alt="">` : "?";
+    el.querySelector(".slot-name").textContent = c ? c.name : slot === "a" ? "ADC" : "Support";
+  });
+  $("#pair-add").disabled = !(pairDraft.a && pairDraft.b);
+
+  // Filter chips: all champions, or the Bot / Support players' pools
+  document.querySelectorAll("#pair-filters .chip").forEach((c) => c.classList.toggle("active", c.dataset.filter === pairFilter));
+  let ids = Object.keys(champions);
+  if (pairFilter !== "all") {
+    const pool = new Set(state.players.filter((p) => p.role === pairFilter).flatMap((p) => p.champs));
+    ids = ids.filter((id) => pool.has(id));
+  }
+  const q = $("#pair-search").value.trim().toLowerCase();
+  if (q) ids = ids.filter((id) => champions[id].name.toLowerCase().includes(q));
+  const grid = $("#pair-grid");
+  grid.innerHTML = ids.length ? "" : `<p class="muted">No champions here yet${pairFilter !== "all" ? ` — add some to your ${pairFilter} player's pool` : ""}.</p>`;
+  ids.forEach((id) => {
+    const c = champions[id];
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "pick" + (id === pairDraft.a || id === pairDraft.b ? " selected" : "");
+    b.dataset.id = id;
+    b.title = c.name;
+    b.innerHTML = `<img src="${c.img}" alt="" loading="lazy"><span>${c.name}</span>`;
+    grid.appendChild(b);
+  });
+}
+
+$("#pair-grid").addEventListener("click", (e) => {
+  const b = e.target.closest(".pick");
+  if (!b) return;
+  const id = b.dataset.id;
+  if (!pairDraft.a) pairDraft.a = id;
+  else if (!pairDraft.b) pairDraft.b = id;
+  else pairDraft.b = id; // both filled: replace the second champion
+  $("#pair-search").value = ""; // ready to search for the next champion
+  if (pairDraft.a && !pairDraft.b && pairFilter === "Bot") pairFilter = "Support";
+  renderPairDialog();
+});
+["a", "b"].forEach((slot) =>
+  $(`#pair-slot-${slot}`).addEventListener("click", () => { pairDraft[slot] = null; renderPairDialog(); })
+);
+$("#pair-search").addEventListener("input", renderPairDialog);
+$("#pair-filters").addEventListener("click", (e) => {
+  const chip = e.target.closest(".chip");
+  if (chip) { pairFilter = chip.dataset.filter; renderPairDialog(); }
+});
+$("#pair-add").addEventListener("click", (e) => {
+  e.preventDefault();
+  if (!pairDraft.a || !pairDraft.b) return;
+  state.pairs.push({ id: uid(), a: pairDraft.a, b: pairDraft.b });
+  save(); render();
+  toast(`Added ${champions[pairDraft.a].name} & ${champions[pairDraft.b].name}`);
+  pairDraft = { a: null, b: null }; // stay open to build the next pair
+  renderPairDialog();
+});
 
 function openPicker(playerId) {
   editingPlayerId = playerId;
@@ -316,6 +468,7 @@ function purgePlayerEntries() {
   // A champion removed from a player's pool also leaves the tier list for that player.
   state.rows.forEach((r) => {
     r.items = r.items.filter((key) => {
+      if (isPairKey(key)) return true;
       const { id, pid } = parseKey(key);
       return !pid || (playerById(pid) && playerById(pid).champs.includes(id));
     });
@@ -344,8 +497,8 @@ document.addEventListener("pointerdown", (e) => {
   // that player's own entry for the champion, tagged with their role.
   let el = source;
   if (source.classList.contains("pp")) {
-    const key = entryKey(source.dataset.id, source.dataset.owner);
-    el = document.querySelector(`#tierlist .champ[data-key="${key}"]`) || champEl(key);
+    const key = source.dataset.pair ? `pair:${source.dataset.pair}` : entryKey(source.dataset.id, source.dataset.owner);
+    el = document.querySelector(`#tierlist .champ[data-key="${key}"]`) || itemEl(key);
   }
   const rect = source.getBoundingClientRect();
   drag = {
@@ -403,9 +556,9 @@ function updateDropTarget(x, y) {
   document.querySelectorAll(".drop-target").forEach((z) => z.classList.remove("drop-target"));
   if (!zone) return;
   // Dropping a player's entry back on the player pools (or the All Champions pool) unranks it.
-  if (zone.id === "panel-players" || (zone.id === "pool" && parseKey(drag.el.dataset.key).pid)) {
+  if (zone.id === "panel-players" || (zone.id === "pool" && isOwnedKey(drag.el.dataset.key))) {
     zone.classList.add("drop-target");
-    if (zone.id === "panel-players" && !parseKey(drag.el.dataset.key).pid) $("#pool").appendChild(drag.el);
+    if (zone.id === "panel-players" && !isOwnedKey(drag.el.dataset.key)) $("#pool").appendChild(drag.el);
     else drag.el.remove();
     return;
   }
@@ -533,9 +686,9 @@ $("#search").addEventListener("input", applySearch);
 $("#btn-add-row").addEventListener("click", () => addRow(state.rows.length));
 
 $("#btn-reset").addEventListener("click", () => {
-  if (!confirm("Reset the tier list? All champions go back to the pool and rows return to S–D. Player pools are kept.")) return;
-  const players = state.players;
-  state = defaultState(); state.players = players; save(); render();
+  if (!confirm("Reset the tier list? All champions go back to the pool and rows return to S–D. Player pools and bot lane pairs are kept.")) return;
+  const { players, pairs } = state;
+  state = defaultState(); state.players = players; state.pairs = pairs; save(); render();
 });
 
 $("#btn-share").addEventListener("click", async () => {
