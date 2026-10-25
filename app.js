@@ -558,6 +558,106 @@ function purgePlayerEntries() {
   });
 }
 
+// ---------- Right-click "send to tier" menu ----------
+// Right-click a champion in a player pool, a bot lane pair, a champion in the
+// All Champions pool, or a tile already ranked to place it in a tier without dragging.
+let menuKey = null;
+
+function keyForTile(el) {
+  if (el.closest("#pool, #tierlist")) return el.dataset.key;
+  if (!el.classList.contains("pp")) return null;
+  return el.dataset.pair ? `pair:${el.dataset.pair}` : entryKey(el.dataset.id, el.dataset.owner);
+}
+
+function tileLabel(key) {
+  if (isPairKey(key)) {
+    const p = pairById(key.slice(5));
+    return `${champions[p.a].name} & ${champions[p.b].name}`;
+  }
+  const { id, pid } = parseKey(key);
+  const pl = pid && playerById(pid);
+  return pl ? `${champions[id].name} (${ROLE_TAGS[pl.role]})` : champions[id].name;
+}
+
+function openTierMenu(key, x, y) {
+  menuKey = key;
+  const current = state.rows.find((r) => r.items.includes(key));
+  const menu = $("#tier-menu");
+  menu.innerHTML = `<div class="menu-title"></div>`;
+  menu.querySelector(".menu-title").textContent = tileLabel(key);
+  state.rows.forEach((row) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.role = "menuitem";
+    b.dataset.row = row.id;
+    b.innerHTML = `<span class="menu-swatch"></span><span class="menu-label"></span><span class="menu-check">${row === current ? "✓" : ""}</span>`;
+    b.querySelector(".menu-swatch").style.background = row.color;
+    b.querySelector(".menu-label").textContent = row.label.trim() || "(unnamed tier)";
+    if (row === current) b.classList.add("current");
+    menu.appendChild(b);
+  });
+  if (current) {
+    const rm = document.createElement("button");
+    rm.type = "button";
+    rm.className = "menu-remove";
+    rm.dataset.row = "";
+    rm.textContent = "Remove from tier list";
+    menu.appendChild(rm);
+  }
+  menu.hidden = false;
+  // Keep the menu on screen
+  const w = menu.offsetWidth, h = menu.offsetHeight;
+  menu.style.left = `${Math.max(8, Math.min(x, window.innerWidth - w - 8))}px`;
+  menu.style.top = `${Math.max(8, Math.min(y, window.innerHeight - h - 8))}px`;
+  menu.querySelector("button")?.focus();
+}
+
+function closeTierMenu() {
+  $("#tier-menu").hidden = true;
+  menuKey = null;
+}
+
+function sendToTier(key, rowId) {
+  state.rows.forEach((r) => (r.items = r.items.filter((k) => k !== key)));
+  const row = state.rows.find((r) => r.id === rowId);
+  if (row) row.items.push(key);
+  save();
+  render();
+  toast(row ? `${tileLabel(key)} → ${row.label.trim() || "tier"}` : `Removed ${tileLabel(key)}`);
+}
+
+document.addEventListener("contextmenu", (e) => {
+  const tile = e.target.closest(".champ");
+  const key = tile && keyForTile(tile);
+  if (!key) return;
+  e.preventDefault();
+  openTierMenu(key, e.clientX, e.clientY);
+});
+
+$("#tier-menu").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b || menuKey === null) return;
+  const key = menuKey;
+  closeTierMenu();
+  sendToTier(key, b.dataset.row);
+});
+
+$("#tier-menu").addEventListener("keydown", (e) => {
+  const items = [...$("#tier-menu").querySelectorAll("button")];
+  const i = items.indexOf(document.activeElement);
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    items[(i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length].focus();
+  }
+});
+
+document.addEventListener("pointerdown", (e) => {
+  if (!$("#tier-menu").hidden && !e.target.closest("#tier-menu")) closeTierMenu();
+}, true);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#tier-menu").hidden) closeTierMenu(); });
+window.addEventListener("scroll", () => { if (!$("#tier-menu").hidden) closeTierMenu(); }, { passive: true });
+window.addEventListener("resize", closeTierMenu);
+
 // ---------- Tabs ----------
 document.querySelectorAll(".tab").forEach((t) =>
   t.addEventListener("click", () => {
