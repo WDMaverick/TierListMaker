@@ -23,41 +23,73 @@
     red: { name: "Red Team", bans: Array(5).fill(null), picks: Array(5).fill(null) },
   });
 
-  let draft = loadDraft();
+  const GAMES = 5;
+  // A best-of-5 series: one draft per game. With fearless on, champions picked in an
+  // earlier game can't be picked (or banned) again in a later one.
+  let series = loadSeries();
+  let draft = series.games[series.current];
   let target = null;   // slot ref clicked by the user ("blue.picks.2"), overrides the sequence
   let preview = null;  // champion id waiting to be locked in
   let role = "all";
   const history = [];  // snapshots for Undo
   let savedLists = []; // tier lists from the signed-in account
 
-  function loadDraft() {
+  function cleanDraft(d) {
+    const base = emptyDraft();
+    if (!d || !d.blue || !d.red) return base;
+    SIDES.forEach((s) => {
+      base[s].name = typeof d[s].name === "string" ? d[s].name : base[s].name;
+      ["bans", "picks"].forEach((k) => {
+        base[s][k] = base[s][k].map((_, i) => (Array.isArray(d[s][k]) && d[s][k][i]) || null);
+      });
+    });
+    return base;
+  }
+  function emptySeries(names) {
+    const games = Array.from({ length: GAMES }, emptyDraft);
+    if (names) games.forEach((g) => SIDES.forEach((s) => (g[s].name = names[s])));
+    return { games, current: 0, fearless: true };
+  }
+  function loadSeries() {
     try {
       const d = JSON.parse(localStorage.getItem(DRAFT_KEY));
+      if (d && Array.isArray(d.games)) {
+        const out = emptySeries();
+        out.games = out.games.map((_, i) => cleanDraft(d.games[i]));
+        out.current = Math.min(GAMES - 1, Math.max(0, +d.current || 0));
+        out.fearless = d.fearless !== false;
+        return out;
+      }
       if (d && d.blue && d.red) {
-        const base = emptyDraft();
-        SIDES.forEach((s) => {
-          base[s].name = typeof d[s].name === "string" ? d[s].name : base[s].name;
-          ["bans", "picks"].forEach((k) => {
-            base[s][k] = base[s][k].map((_, i) => (Array.isArray(d[s][k]) && d[s][k][i]) || null);
-          });
-        });
-        return base;
+        // Saved before the series existed: it becomes Game 1.
+        const out = emptySeries({ blue: d.blue.name || "Blue Team", red: d.red.name || "Red Team" });
+        out.games[0] = cleanDraft(d);
+        return out;
       }
     } catch (_) {}
-    return emptyDraft();
+    return emptySeries();
   }
-  const saveDraft = () => { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (_) {} };
+  const saveDraft = () => { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(series)); } catch (_) {} };
 
   const getSlot = (ref) => { const [s, k, i] = ref.split("."); return draft[s][k][+i]; };
   const setSlot = (ref, v) => { const [s, k, i] = ref.split("."); draft[s][k][+i] = v; };
+  // Champions that can't be chosen in the current game:
+  // champion id -> "ban" | "blue" | "red" (this game) or "G1".."G4" (picked in that earlier game, fearless)
   const takenIds = () => {
-    const out = new Map(); // champion id -> "ban" | "blue" | "red"
+    const out = new Map();
+    if (series.fearless) {
+      series.games.slice(0, series.current).forEach((g, gi) => {
+        SIDES.forEach((s) => g[s].picks.forEach((id) => id && out.set(id, `G${gi + 1}`)));
+      });
+    }
     SIDES.forEach((s) => {
       draft[s].bans.forEach((id) => id && out.set(id, "ban"));
       draft[s].picks.forEach((id) => id && out.set(id, s));
     });
     return out;
   };
+  const isFearless = (t) => typeof t === "string" && t[0] === "G";
+  const takenText = (t) => (t === "ban" ? "banned" : isFearless(t) ? `picked in Game ${t.slice(1)} (fearless)` : `picked by ${draft[t].name}`);
   const activeRef = () => target || SEQUENCE.find((ref) => !getSlot(ref)) || null;
   const refLabel = (ref) => {
     const [s, k, i] = ref.split(".");
@@ -65,7 +97,7 @@
   };
 
   function snapshot() {
-    history.push(JSON.stringify(draft));
+    history.push(JSON.stringify(series));
     if (history.length > 100) history.shift();
   }
 
@@ -140,7 +172,7 @@
 
   SIDES.forEach((side) => {
     q(`#${side}-name`).addEventListener("input", (e) => {
-      draft[side].name = e.target.value;
+      series.games.forEach((g) => (g[side].name = e.target.value)); // names apply to the whole series
       saveDraft();
       renderTurn();
       renderDraftTierList();
@@ -191,8 +223,8 @@
       b.className = "dchamp" + (t ? " taken" : "") + (id === preview ? " selected" : "");
       b.dataset.id = id;
       b.disabled = !!t;
-      b.title = t ? `${c.name} — ${t === "ban" ? "banned" : `picked by ${draft[t].name}`}` : c.name;
-      b.innerHTML = `<span class="dchamp-art"><img src="${c.img}" alt="" loading="lazy"></span><span class="dchamp-name">${c.name}</span>`;
+      b.title = t ? `${c.name} — ${takenText(t)}` : c.name;
+      b.innerHTML = `<span class="dchamp-art"><img src="${c.img}" alt="" loading="lazy">${isFearless(t) ? `<span class="fearless-mark">${t}</span>` : ""}</span><span class="dchamp-name">${c.name}</span>`;
       grid.appendChild(b);
     });
     if (!ids.length) grid.innerHTML = `<p class="muted draft-empty">No champions match.</p>`;
@@ -270,7 +302,8 @@
   q("#draft-lock").addEventListener("click", lockIn);
   q("#draft-undo").addEventListener("click", () => {
     if (!history.length) return toast("Nothing to undo");
-    draft = JSON.parse(history.pop());
+    series = JSON.parse(history.pop());
+    draft = series.games[series.current];
     preview = null;
     target = null;
     saveDraft();
@@ -278,12 +311,13 @@
   });
   q("#draft-reset").addEventListener("click", () => {
     const any = SIDES.some((s) => [...draft[s].bans, ...draft[s].picks].some(Boolean));
-    if (any && !confirm("Clear all bans and picks?")) return;
+    if (any && !confirm(`Clear all bans and picks in Game ${series.current + 1}?`)) return;
     snapshot();
     const names = { blue: draft.blue.name, red: draft.red.name };
     draft = emptyDraft();
     draft.blue.name = names.blue;
     draft.red.name = names.red;
+    series.games[series.current] = draft;
     preview = null;
     target = null;
     saveDraft();
@@ -395,10 +429,10 @@
     if (hit) {
       el.classList.add("taken");
       const mark = document.createElement("span");
-      mark.className = `taken-mark ${hit}`;
-      mark.textContent = hit === "ban" ? "BAN" : hit === "blue" ? "B" : "R";
+      mark.className = `taken-mark ${isFearless(hit) ? "fearless" : hit}`;
+      mark.textContent = hit === "ban" ? "BAN" : hit === "blue" ? "B" : hit === "red" ? "R" : hit;
       el.appendChild(mark);
-      el.title += hit === "ban" ? " (banned)" : ` (picked by ${draft[hit].name})`;
+      el.title += ` — ${takenText(hit)}`;
     }
     return el;
   }
@@ -427,7 +461,59 @@
   }
   qa(".view-tab").forEach((t) => t.addEventListener("click", () => showView(t.dataset.view)));
 
+  // ---------- Game tabs (Game 1..5) ----------
+  function gameProgress(g) {
+    return SEQUENCE.filter((ref) => { const [s, k, i] = ref.split("."); return g[s][k][+i]; }).length;
+  }
+  function renderGames() {
+    const box = q("#game-tabs");
+    box.innerHTML = "";
+    series.games.forEach((g, i) => {
+      const n = gameProgress(g);
+      const b = document.createElement("button");
+      b.type = "button";
+      b.role = "tab";
+      b.className = "game-tab";
+      b.setAttribute("aria-selected", String(i === series.current));
+      b.innerHTML = `Game ${i + 1}<span class="game-state${n === SEQUENCE.length ? " done" : ""}">${n === SEQUENCE.length ? "✓" : n ? `${n}/${SEQUENCE.length}` : "—"}</span>`;
+      b.addEventListener("click", () => switchGame(i));
+      box.appendChild(b);
+    });
+    q("#fearless").checked = series.fearless;
+  }
+  function switchGame(i) {
+    if (i === series.current) return;
+    series.current = i;
+    draft = series.games[i];
+    preview = null;
+    target = null;
+    q("#draft-search").value = "";
+    saveDraft();
+    render();
+  }
+  q("#fearless").addEventListener("change", (e) => {
+    series.fearless = e.target.checked;
+    preview = null;
+    saveDraft();
+    render();
+  });
+  q("#series-reset").addEventListener("click", () => {
+    const any = series.games.some((g) => gameProgress(g));
+    if (any && !confirm("Clear all five games of the series?")) return;
+    snapshot();
+    const names = { blue: draft.blue.name, red: draft.red.name };
+    const fearless = series.fearless;
+    series = emptySeries(names);
+    series.fearless = fearless;
+    draft = series.games[0];
+    preview = null;
+    target = null;
+    saveDraft();
+    render();
+  });
+
   function render() {
+    renderGames();
     renderTeams();
     renderTurn();
     renderGrid();
@@ -437,6 +523,8 @@
   function escapeHtml(t) {
     return String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   }
+
+  saveDraft(); // stores a draft from before the series (now Game 1) in the new format
 
   TL.ready.then(() => {
     try { q("#draft-tl-show").checked = localStorage.getItem(TL_SHOW_KEY) !== "0"; } catch (_) {}

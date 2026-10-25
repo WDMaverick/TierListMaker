@@ -596,6 +596,28 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
 .dchamp.taken .dchamp-art, .dchamp.taken:hover .dchamp-art { border-color: var(--line-strong); transform: none; }
 .draft-empty { grid-column: 1 / -1; text-align: center; }
 
+/* Series: Game 1..5 sub-tabs (fearless) */
+.series-bar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+.game-tabs { display: flex; gap: 2px; overflow-x: auto; }
+.game-tab {
+  display: inline-flex; align-items: center; gap: 8px; background: none; border: none; cursor: pointer;
+  color: var(--muted); font: 600 16px/1 var(--font-display); letter-spacing: .08em; text-transform: uppercase;
+  padding: 12px 14px 11px; border-bottom: 3px solid transparent; margin-bottom: -1px; white-space: nowrap;
+}
+.game-tab:hover { color: #fff; }
+.game-tab[aria-selected="true"] { color: #fff; border-bottom-color: var(--magenta); }
+.game-state { font: 500 12px/1 var(--font-body); letter-spacing: 0; padding: 3px 6px; border-radius: 3px; background: var(--sunk); color: var(--muted); }
+.game-state.done { background: var(--primary); color: #fff; }
+.series-tools { display: flex; align-items: center; gap: 12px; padding-bottom: 8px; }
+.fearless-mark {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  font: 700 14px/1 var(--font-display); letter-spacing: .06em; color: #fff; background: rgba(1, 15, 25, .8);
+  padding: 4px 6px; border-radius: 3px; border: 1px solid var(--magenta);
+}
+.dchamp-art { position: relative; }
+.dchamp.taken:has(.fearless-mark) { opacity: .55; }
+.taken-mark.fearless { background: var(--navy); color: #fff; box-shadow: inset 0 0 0 1px var(--magenta); }
+
 /* Tier list under the draft (read-only, greys out picks and bans) */
 .draft-tierlist { margin-top: 20px; }
 .draft-tl-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }

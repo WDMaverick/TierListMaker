@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <meta name="theme-color" content="#2323F2" />
   <link rel="icon" type="image/png" href="assets/wtl-logo.png" />
-  <link rel="stylesheet" href="style.css?v=202610251954" />
+  <link rel="stylesheet" href="style.css?v=202610251958" />
 </head>
 <body>
   <header class="topbar">
@@ -90,6 +90,13 @@
   </div>
 
   <div id="view-draft" hidden>
+    <div class="series-bar">
+      <div class="game-tabs" id="game-tabs" role="tablist" aria-label="Games in the series"></div>
+      <div class="series-tools">
+        <label class="switch" title="Champions picked in earlier games can't be picked again"><input type="checkbox" id="fearless" checked /><span>Fearless</span></label>
+        <button type="button" class="btn small danger" id="series-reset">Reset series</button>
+      </div>
+    </div>
     <div class="draft">
       <aside class="team-panel blue" aria-label="Blue team">
         <input class="team-name" id="blue-name" value="Blue Team" maxlength="20" aria-label="Blue team name" />
@@ -121,7 +128,7 @@
           <div class="draft-actions">
             <button type="button" class="btn small primary" id="draft-lock" disabled>Lock in</button>
             <button type="button" class="btn small" id="draft-undo">Undo</button>
-            <button type="button" class="btn small danger" id="draft-reset">Reset</button>
+            <button type="button" class="btn small danger" id="draft-reset" title="Clear this game">Reset game</button>
           </div>
         </div>
         <p class="draft-help">Click a champion to preview, then Enter or Lock in to confirm · Esc to cancel · Click a slot to fill it out of order · Right-click a slot to clear it</p>
@@ -224,10 +231,10 @@
   <div id="toast" class="toast"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="roles.js?v=202610251954"></script>
-  <script src="firebase-config.js?v=202610251954"></script>
-  <script src="app.js?v=202610251954"></script>
-  <script src="draft.js?v=202610251954"></script>
-  <script type="module" src="cloud.js?v=202610251954"></script>
+  <script src="roles.js?v=202610251958"></script>
+  <script src="firebase-config.js?v=202610251958"></script>
+  <script src="app.js?v=202610251958"></script>
+  <script src="draft.js?v=202610251958"></script>
+  <script type="module" src="cloud.js?v=202610251958"></script>
 </body>
 </html>
