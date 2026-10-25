@@ -163,7 +163,8 @@ function pairEl(key) {
     <img crossorigin="anonymous" src="${a.img}" alt="${a.name}" loading="lazy">
     <span class="amp">&amp;</span>
     <img crossorigin="anonymous" src="${b.img}" alt="${b.name}" loading="lazy">
-    <span class="name">${a.name} &amp; ${b.name}</span>`;
+    <span class="name">${a.name} &amp; ${b.name}</span>
+    <span class="role-tag role-duo">BOT LANE</span>`;
   return el;
 }
 
