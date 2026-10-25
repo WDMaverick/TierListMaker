@@ -3,16 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>League Tier List Maker</title>
+  <title>WTL Tier List Maker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=202610251723" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <meta name="theme-color" content="#2323F2" />
+  <link rel="icon" type="image/png" href="assets/wtl-logo.png" />
+  <link rel="stylesheet" href="style.css?v=202610251743" />
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
-      <span class="logo">TL</span>
-      <span>League Tier List Maker</span>
+      <img class="logo" src="assets/wtl-logo.png" alt="WTL" width="66" height="40" />
+      <span>Tier List <span class="brand-sub">Maker</span></span>
     </div>
     <div class="topbar-right">
       <div class="patch" id="patch">Loading champions…</div>
@@ -149,8 +152,8 @@
   <div id="toast" class="toast"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="firebase-config.js?v=202610251723"></script>
-  <script src="app.js?v=202610251723"></script>
-  <script type="module" src="cloud.js?v=202610251723"></script>
+  <script src="firebase-config.js?v=202610251743"></script>
+  <script src="app.js?v=202610251743"></script>
+  <script type="module" src="cloud.js?v=202610251743"></script>
 </body>
 </html>

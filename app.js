@@ -1031,7 +1031,7 @@ $("#btn-download").addEventListener("click", async () => {
   const list = $("#tierlist");
   list.classList.add("exporting");
   try {
-    const canvas = await html2canvas(list, { useCORS: true, backgroundColor: "#1a1a17", scale: 2 });
+    const canvas = await html2canvas(list, { useCORS: true, backgroundColor: "#010F19", scale: 2 });
     canvas.toBlob((b) => downloadBlob(b, `${slug(state.title)}.png`));
   } catch (err) {
     console.error(err);

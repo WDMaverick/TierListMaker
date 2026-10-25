@@ -1,6 +1,6 @@
-# TierListMaker
+# TierListMaker (WTL)
 
-A TierMaker-style tier list builder for League of Legends, made for ranking champions with a competitive team.
+A TierMaker-style tier list builder for League of Legends, made for ranking champions with a competitive team. Styled to match the WTL Championship site (navy, blue and magenta; Oswald + Public Sans).
 
 ## Features
 
