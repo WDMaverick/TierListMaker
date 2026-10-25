@@ -8,7 +8,7 @@ A TierMaker-style tier list builder for League of Legends, made for ranking cham
 - Drag and drop champions into tiers, between tiers, and back to the pool (mouse and touch)
 - Default S / A / B / C / D tiers; rename labels inline, recolor, add, reorder, clear or delete rows
 - Search the champion pool
-- **Player Pools** tab: 5 player slots with name, role and champion pool. Drag from a player's pool straight into the tier list; a badge shows which tier each pool champion is ranked in
+- **Player Pools** tab: 5 player slots with name, role and champion pool. Drag from a player's pool straight into the tier list. The same champion can be ranked once per player, and each entry gets a role tag (TOP / JGL / MID / BOT / SUP); a badge on pool champions shows their tier
 - Download the tier list as a PNG
 - Copy a share link that opens the exact same list for a teammate
 - Export / import tier lists as JSON

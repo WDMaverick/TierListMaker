@@ -16,6 +16,13 @@ const DEFAULT_ROWS = [
 
 const ROLES = ["Top", "Jungle", "Mid", "Bot", "Support"];
 const PLAYER_SLOTS = 5;
+const ROLE_TAGS = { Top: "TOP", Jungle: "JGL", Mid: "MID", Bot: "BOT", Support: "SUP" };
+
+// Tier list entries are keys: "Ahri" for an unassigned champion, or "Ahri|<playerId>" for a
+// specific player's Ahri. That lets the same champion be ranked once per player.
+const entryKey = (id, pid) => (pid ? `${id}|${pid}` : id);
+const parseKey = (key) => { const [id, pid] = String(key).split("|"); return { id, pid: pid || null }; };
+const playerById = (pid) => state.players.find((p) => p.id === pid);
 
 let champions = {}; // id -> { id, name, img }
 let state = null;    // { title, rows: [{ id, label, color, items }], players: [{ id, name, role, champs }] }
@@ -90,14 +97,6 @@ function loadState() {
 }
 
 function normalize(s) {
-  // Drop unknown champions and duplicates; make sure every row has an id.
-  const seen = new Set();
-  s.rows.forEach((r) => {
-    r.id = r.id || uid();
-    r.color = r.color || "#cfcfcf";
-    r.label = r.label ?? "";
-    r.items = r.items.filter((id) => champions[id] && !seen.has(id) && seen.add(id));
-  });
   s.title = s.title || defaultState().title;
 
   // Always exactly 5 player slots; each pool holds known champions, no duplicates.
@@ -109,17 +108,46 @@ function normalize(s) {
     role: ROLES.includes(p.role) ? p.role : ROLES[i],
     champs: [...new Set(Array.isArray(p.champs) ? p.champs : [])].filter((id) => champions[id]),
   }));
+
+  // Drop unknown champions, entries for champions no longer in that player's pool, and duplicates.
+  const seen = new Set();
+  s.rows.forEach((r) => {
+    r.id = r.id || uid();
+    r.color = r.color || "#cfcfcf";
+    r.label = r.label ?? "";
+    r.items = r.items.filter((key) => {
+      const { id, pid } = parseKey(key);
+      if (!champions[id] || seen.has(key)) return false;
+      if (pid) {
+        const pl = s.players.find((x) => x.id === pid);
+        if (!pl || !pl.champs.includes(id)) return false;
+      }
+      seen.add(key);
+      return true;
+    });
+  });
   return s;
 }
 
 // ---------- Rendering ----------
-function champEl(id) {
+function champEl(key) {
+  const { id, pid } = parseKey(key);
   const c = champions[id];
   const el = document.createElement("div");
   el.className = "champ";
   el.dataset.id = id;
+  el.dataset.key = key;
   el.title = c.name;
   el.innerHTML = `<img crossorigin="anonymous" src="${c.img}" alt="${c.name}" loading="lazy"><span class="name">${c.name}</span>`;
+  const pl = pid && playerById(pid);
+  if (pl) {
+    const idx = state.players.indexOf(pl);
+    const tag = document.createElement("span");
+    tag.className = `role-tag role-${pl.role.toLowerCase()}`;
+    tag.textContent = ROLE_TAGS[pl.role];
+    el.appendChild(tag);
+    el.title = `${c.name} — ${pl.name || `Player ${idx + 1}`} (${pl.role})`;
+  }
   return el;
 }
 
@@ -158,7 +186,7 @@ function render() {
     list.appendChild(r);
   });
 
-  // Pool = every champion not placed in a tier.
+  // Pool = every champion whose unassigned entry isn't placed in a tier.
   const placed = new Set(state.rows.flatMap((r) => r.items));
   const pool = $("#pool");
   pool.innerHTML = "";
@@ -171,7 +199,7 @@ function render() {
 
 // ---------- Player pools ----------
 function tierOf() {
-  // champId -> row, for the tier badges on player pool tiles
+  // entry key -> row, for the tier badges on player pool tiles
   const map = {};
   state.rows.forEach((r) => r.items.forEach((id) => (map[id] = r)));
   return map;
@@ -195,8 +223,14 @@ function renderPlayers() {
       <div class="player-pool"></div>`;
     const name = card.querySelector(".player-name");
     name.value = p.name;
-    name.addEventListener("input", () => { p.name = name.value; save(); });
-    card.querySelector(".player-role").addEventListener("change", (e) => { p.role = e.target.value; save(); });
+    name.addEventListener("input", () => {
+      p.name = name.value; save();
+      // keep tile tooltips current without re-rendering (which would steal focus)
+      document.querySelectorAll(`#tierlist .champ[data-key$="|${p.id}"]`).forEach((el) => {
+        el.title = `${champions[el.dataset.id].name} — ${p.name || `Player ${i + 1}`} (${p.role})`;
+      });
+    });
+    card.querySelector(".player-role").addEventListener("change", (e) => { p.role = e.target.value; save(); render(); });
     card.querySelector("[data-act=edit]").addEventListener("click", () => openPicker(p.id));
 
     const pool = card.querySelector(".player-pool");
@@ -207,7 +241,8 @@ function renderPlayers() {
     p.champs.forEach((id) => {
       const el = champEl(id);
       el.classList.add("pp");
-      const row = tiers[id];
+      el.dataset.owner = p.id;
+      const row = tiers[entryKey(id, p.id)];
       if (row) {
         const badge = document.createElement("span");
         badge.className = "tier-badge";
@@ -222,7 +257,8 @@ function renderPlayers() {
       rm.textContent = "×";
       rm.addEventListener("click", () => {
         p.champs = p.champs.filter((c) => c !== id);
-        save(); renderPlayers();
+        purgePlayerEntries();
+        save(); render();
       });
       el.appendChild(rm);
       pool.appendChild(el);
@@ -274,7 +310,17 @@ $("#picker-grid").addEventListener("click", (e) => {
   save();
 });
 $("#picker-search").addEventListener("input", renderPicker);
-$("#picker-dialog").addEventListener("close", () => { editingPlayerId = null; renderPlayers(); });
+$("#picker-dialog").addEventListener("close", () => { editingPlayerId = null; purgePlayerEntries(); save(); render(); });
+
+function purgePlayerEntries() {
+  // A champion removed from a player's pool also leaves the tier list for that player.
+  state.rows.forEach((r) => {
+    r.items = r.items.filter((key) => {
+      const { id, pid } = parseKey(key);
+      return !pid || (playerById(pid) && playerById(pid).champs.includes(id));
+    });
+  });
+}
 
 // ---------- Tabs ----------
 document.querySelectorAll(".tab").forEach((t) =>
@@ -294,12 +340,13 @@ let drag = null; // { el, ghost, offsetX, offsetY, startX, startY, active }
 document.addEventListener("pointerdown", (e) => {
   const source = e.target.closest(".champ");
   if (!source || e.button > 0 || e.target.closest(".remove")) return;
-  // A tile in a player's pool stays put: dragging it moves that champion's tile
-  // (from the All Champions pool, or wherever it's ranked) into the tier list.
-  const el = source.classList.contains("pp")
-    ? document.querySelector(`#tierlist .champ[data-id="${source.dataset.id}"], #pool .champ[data-id="${source.dataset.id}"]`)
-    : source;
-  if (!el) return;
+  // A tile in a player's pool stays put: dragging it places (or moves, if already ranked)
+  // that player's own entry for the champion, tagged with their role.
+  let el = source;
+  if (source.classList.contains("pp")) {
+    const key = entryKey(source.dataset.id, source.dataset.owner);
+    el = document.querySelector(`#tierlist .champ[data-key="${key}"]`) || champEl(key);
+  }
   const rect = source.getBoundingClientRect();
   drag = {
     el, source, ghost: null, active: false,
@@ -314,9 +361,7 @@ document.addEventListener("pointermove", (e) => {
   if (!drag.active) {
     if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < 4) return;
     drag.active = true;
-    drag.ghost = drag.source.cloneNode(true);
-    drag.ghost.classList.remove("pp");
-    drag.ghost.querySelectorAll(".remove, .tier-badge").forEach((n) => n.remove());
+    drag.ghost = drag.el.cloneNode(true);
     drag.ghost.classList.add("drag-ghost");
     document.body.appendChild(drag.ghost);
     drag.el.classList.remove("hidden"); // might be filtered out of the pool by the search box
@@ -325,18 +370,52 @@ document.addEventListener("pointermove", (e) => {
     document.body.classList.add("dragging");
   }
   drag.ghost.style.transform = `translate(${e.clientX - drag.offsetX}px, ${e.clientY - drag.offsetY}px)`;
+  drag.x = e.clientX;
+  drag.y = e.clientY;
+  updateDropTarget(e.clientX, e.clientY);
+  startAutoScroll();
+});
 
-  const under = document.elementFromPoint(e.clientX, e.clientY);
-  const zone = under && under.closest(".tier-items, #pool, .tier-row");
+// Scroll the page while dragging near the top/bottom edge, so a player's pool
+// can be dragged up to the tier list (and back) on any screen size.
+function startAutoScroll() {
+  if (drag.scrolling) return;
+  drag.scrolling = true;
+  const step = () => {
+    if (!drag || !drag.active) return;
+    const edge = 70, h = window.innerHeight;
+    let dy = 0;
+    if (drag.y < edge) dy = -Math.ceil((edge - drag.y) / 4);
+    else if (drag.y > h - edge) dy = Math.ceil((drag.y - (h - edge)) / 4);
+    if (dy) {
+      const before = window.scrollY;
+      window.scrollBy(0, dy);
+      if (window.scrollY !== before) updateDropTarget(drag.x, drag.y);
+    }
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function updateDropTarget(x, y) {
+  const under = document.elementFromPoint(x, y);
+  const zone = under && under.closest(".tier-items, #pool, .tier-row, #panel-players");
   document.querySelectorAll(".drop-target").forEach((z) => z.classList.remove("drop-target"));
   if (!zone) return;
+  // Dropping a player's entry back on the player pools (or the All Champions pool) unranks it.
+  if (zone.id === "panel-players" || (zone.id === "pool" && parseKey(drag.el.dataset.key).pid)) {
+    zone.classList.add("drop-target");
+    if (zone.id === "panel-players" && !parseKey(drag.el.dataset.key).pid) $("#pool").appendChild(drag.el);
+    else drag.el.remove();
+    return;
+  }
   // Dropping on a row's label or settings column puts the champion at the end of that row.
   const container = zone.classList.contains("tier-row") ? zone.querySelector(".tier-items") : zone;
   container.classList.add("drop-target");
-  const before = container === zone ? insertionPoint(container, e.clientX, e.clientY) : null;
+  const before = container === zone ? insertionPoint(container, x, y) : null;
   if (before !== drag.el && before !== drag.el.nextSibling) container.insertBefore(drag.el, before);
   else if (drag.el.parentElement !== container) container.insertBefore(drag.el, before);
-});
+}
 
 function insertionPoint(container, x, y) {
   // Returns the visible tile the dragged one should go in front of (null = end), reading order L→R, top→bottom.
@@ -358,8 +437,7 @@ function endDrag() {
     document.body.classList.remove("dragging");
     document.querySelectorAll(".drop-target").forEach((z) => z.classList.remove("drop-target"));
     syncFromDom();
-    applySearch();
-    renderPlayers(); // refresh the tier badges
+    render(); // rebuilds the pool and the tier badges
   }
   drag = null;
 }
@@ -369,7 +447,7 @@ document.addEventListener("pointercancel", endDrag);
 function syncFromDom() {
   document.querySelectorAll(".tier-row").forEach((rEl) => {
     const row = state.rows.find((r) => r.id === rEl.dataset.id);
-    row.items = [...rEl.querySelectorAll(".champ")].map((c) => c.dataset.id);
+    row.items = [...rEl.querySelectorAll(".champ")].map((c) => c.dataset.key);
   });
   save();
   updateCount();
