@@ -81,8 +81,16 @@ body {
 
 /* ----- Tier list (TierMaker-style) ----- */
 .tierlist { background: var(--border); border: 1px solid var(--border); }
-.export-title { display: none; text-align: center; font: 700 28px var(--font-display); text-transform: uppercase; padding: 12px; background: var(--bg); }
-.exporting .export-title { display: block; }
+/* PNG download header: matches the site's top band */
+.export-head { display: none; }
+.exporting .export-head { display: block; }
+.export-band {
+  display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: var(--blue); color: #fff;
+  font: 700 24px/1 var(--font-display); text-transform: uppercase; letter-spacing: .02em;
+}
+.export-band img { height: 44px; width: auto; display: block; }
+.export-band .brand-sub { color: var(--navy); }
+.export-title { text-align: center; font: 700 28px var(--font-display); text-transform: uppercase; padding: 14px 12px; background: var(--bg); }
 .exporting .row-settings { display: none; }
 .exporting .remove { display: none; }
 

@@ -239,7 +239,15 @@ function champEl(key) {
 function render() {
   $("#title").value = state.title;
   const list = $("#tierlist");
-  list.innerHTML = `<div class="export-title"></div>`;
+  // Only shown in the downloaded PNG: the WTL blue band (logo + "Tier List Maker") and the list title.
+  list.innerHTML = `
+    <div class="export-head">
+      <div class="export-band">
+        <img src="assets/wtl-logo.png" alt="WTL" width="66" height="40">
+        <span>Tier List <span class="brand-sub">Maker</span></span>
+      </div>
+      <div class="export-title"></div>
+    </div>`;
   list.querySelector(".export-title").textContent = state.title;
 
   state.rows.forEach((row, i) => {
