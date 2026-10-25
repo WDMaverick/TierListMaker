@@ -558,8 +558,8 @@ function purgePlayerEntries() {
   });
 }
 
-// ---------- Right-click "send to tier" menu ----------
-// Right-click a champion in a player pool, a bot lane pair, a champion in the
+// ---------- Double-click "send to tier" menu ----------
+// Double-click a champion in a player pool, a bot lane pair, a champion in the
 // All Champions pool, or a tile already ranked to place it in a tier without dragging.
 let menuKey = null;
 
@@ -626,11 +626,13 @@ function sendToTier(key, rowId) {
   toast(row ? `${tileLabel(key)} → ${row.label.trim() || "tier"}` : `Removed ${tileLabel(key)}`);
 }
 
-document.addEventListener("contextmenu", (e) => {
+document.addEventListener("dblclick", (e) => {
+  if (e.target.closest(".remove")) return;
   const tile = e.target.closest(".champ");
   const key = tile && keyForTile(tile);
   if (!key) return;
   e.preventDefault();
+  window.getSelection()?.removeAllRanges();
   openTierMenu(key, e.clientX, e.clientY);
 });
 
