@@ -317,7 +317,9 @@ function renderPlayers() {
     });
     wrap.appendChild(card);
   });
-  wrap.appendChild(pairsCard(tiers));
+  const pairs = $("#pairs");
+  pairs.innerHTML = "";
+  pairs.appendChild(pairsCard(tiers));
 }
 
 // ---------- Bot lane pairings (6th slot) ----------
@@ -326,7 +328,7 @@ function pairsCard(tiers) {
   card.className = "player-card pairs-card";
   card.innerHTML = `
     <div class="player-head">
-      <span class="pairs-title">Bot Lane Pairings</span>
+      <span class="pairs-title">Pairs</span>
       <span class="muted player-count">${state.pairs.length} pair${state.pairs.length === 1 ? "" : "s"}</span>
       <button class="btn small" data-act="new-pair">+ New pair</button>
     </div>
