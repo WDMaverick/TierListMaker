@@ -252,6 +252,13 @@ $("#lists-new").addEventListener("click", async () => {
   $("#lists-dialog").close();
 });
 
+// ---------- Read-only access for the Draft tab ----------
+window.TLCloud = {
+  signedIn: () => !!user,
+  linkedListId: () => (linkedHere() ? link.listId : null),
+  fetchLists: () => (user ? fetchLists() : Promise.resolve([])),
+};
+
 // ---------- Wiring ----------
 window.addEventListener("tl:detach", () => writeLink(null));
 
@@ -272,6 +279,7 @@ window.addEventListener("tl:detach", () => writeLink(null));
     user = u;
     renderAccount();
     renderStatus();
+    window.dispatchEvent(new Event("tl:auth")); // lets the Draft tab refresh its list of saved tier lists
     if (!u) return;
     if (linkedHere()) {
       // Once per visit, pick up changes made to the linked list on another device.

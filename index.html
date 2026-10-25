@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <meta name="theme-color" content="#2323F2" />
   <link rel="icon" type="image/png" href="assets/wtl-logo.png" />
-  <link rel="stylesheet" href="style.css?v=202610251922" />
+  <link rel="stylesheet" href="style.css?v=202610251942" />
 </head>
 <body>
   <header class="topbar">
@@ -17,13 +17,18 @@
       <img class="logo" src="assets/wtl-logo.png" alt="WTL" width="66" height="40" />
       <span>Tier List <span class="brand-sub">Maker</span></span>
     </div>
+    <nav class="view-tabs" role="tablist" aria-label="Views">
+      <button type="button" class="view-tab" role="tab" data-view="tierlist" aria-selected="true">Tier List</button>
+      <button type="button" class="view-tab" role="tab" data-view="draft" aria-selected="false">Draft</button>
+    </nav>
     <div class="topbar-right">
       <div class="patch" id="patch">Loading champions…</div>
       <div id="account" class="account"></div>
     </div>
   </header>
 
-  <main class="container">
+  <main class="container" id="main">
+  <div id="view-tierlist">
     <div id="cloud-status" class="cloud-status" hidden></div>
     <input id="title" class="title-input" value="League of Legends – All Champions Tier List" aria-label="Tier list title" />
 
@@ -82,6 +87,65 @@
     </section>
 
     <p class="hint">Drag champions into a tier (works with mouse and touch). Click a tier label to rename it, and the ⚙ to change its color or move, clear, or delete the row. Your list saves automatically in this browser.</p>
+  </div>
+
+  <div id="view-draft" hidden>
+    <div class="draft">
+      <aside class="team-panel blue" aria-label="Blue team">
+        <input class="team-name" id="blue-name" value="Blue Team" maxlength="20" aria-label="Blue team name" />
+        <h4 class="team-sub">Bans</h4>
+        <div class="ban-row" data-side="blue"></div>
+        <h4 class="team-sub">Picks</h4>
+        <div class="pick-list" data-side="blue"></div>
+      </aside>
+
+      <section class="draft-center" aria-label="Champion select">
+        <div class="draft-tools">
+          <label class="draft-search">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="draft-search" type="search" placeholder="Search champions" autocomplete="off" />
+            <span id="draft-count" class="draft-count"></span>
+            <kbd>/</kbd>
+          </label>
+          <div class="draft-roles" id="draft-roles" role="tablist" aria-label="Filter by role">
+            <button type="button" data-role="all" aria-selected="true">All</button>
+            <button type="button" data-role="Top">Top</button>
+            <button type="button" data-role="Jungle">Jgl</button>
+            <button type="button" data-role="Mid">Mid</button>
+            <button type="button" data-role="Bot">Bot</button>
+            <button type="button" data-role="Support">Sup</button>
+          </div>
+        </div>
+        <div class="draft-status">
+          <div class="turn" id="draft-turn"></div>
+          <div class="draft-actions">
+            <button type="button" class="btn small primary" id="draft-lock" disabled>Lock in</button>
+            <button type="button" class="btn small" id="draft-undo">Undo</button>
+            <button type="button" class="btn small danger" id="draft-reset">Reset</button>
+          </div>
+        </div>
+        <p class="draft-help">Click a champion to preview, then Enter or Lock in to confirm · Esc to cancel · Click a slot to fill it out of order · Right-click a slot to clear it</p>
+        <div class="draft-grid" id="draft-grid"></div>
+      </section>
+
+      <aside class="team-panel red" aria-label="Red team">
+        <input class="team-name" id="red-name" value="Red Team" maxlength="20" aria-label="Red team name" />
+        <h4 class="team-sub">Bans</h4>
+        <div class="ban-row" data-side="red"></div>
+        <h4 class="team-sub">Picks</h4>
+        <div class="pick-list" data-side="red"></div>
+      </aside>
+    </div>
+
+    <section class="draft-tierlist">
+      <div class="draft-tl-head">
+        <label class="switch"><input type="checkbox" id="draft-tl-show" checked /><span>Show a tier list</span></label>
+        <select id="draft-tl-pick" aria-label="Which tier list to show"></select>
+        <span class="muted draft-tl-note">Picked and banned champions are greyed out.</span>
+      </div>
+      <div id="draft-tl" class="tierlist draft-tl"></div>
+    </section>
+  </div>
   </main>
 
   <dialog id="lists-dialog">
@@ -160,9 +224,10 @@
   <div id="toast" class="toast"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="roles.js?v=202610251922"></script>
-  <script src="firebase-config.js?v=202610251922"></script>
-  <script src="app.js?v=202610251922"></script>
-  <script type="module" src="cloud.js?v=202610251922"></script>
+  <script src="roles.js?v=202610251942"></script>
+  <script src="firebase-config.js?v=202610251942"></script>
+  <script src="app.js?v=202610251942"></script>
+  <script src="draft.js?v=202610251942"></script>
+  <script type="module" src="cloud.js?v=202610251942"></script>
 </body>
 </html>

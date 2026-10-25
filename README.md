@@ -17,6 +17,7 @@ A TierMaker-style tier list builder for League of Legends, made for ranking cham
 - Copy a share link that opens the exact same list for a teammate
 - Export / import tier lists as JSON
 - Autosaves in the browser
+- **Draft tab** (top left): simulate a pro draft. Blue and red bans and picks in tournament order (or click any slot to fill it out of order), champion search (`/` to focus) and role filters, Enter to lock in, Esc to cancel, right-click a slot to clear, Undo and Reset. Below it, show any tier list (this device's or one saved to your account) with picked and banned champions greyed out and marked B / R / BAN
 - **Google sign-in** (top right): save tier lists to your account, autosave them, and open them on any device
 
 ## Run it
