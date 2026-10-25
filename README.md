@@ -28,3 +28,7 @@ python3 -m http.server 8000
 In the repo, go to **Settings → Pages**, choose **Deploy from a branch**, pick `main` and `/ (root)`. The site will be live at `https://<your-username>.github.io/TierListMaker/`.
 
 League of Legends and champion images are © Riot Games. This project isn't endorsed by Riot Games.
+
+## Updating
+
+`index.html` loads `style.css?v=…` and `app.js?v=…`. Bump that version whenever you change those files, so browsers fetch the new code instead of a cached copy.
