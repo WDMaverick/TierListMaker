@@ -90,7 +90,11 @@ body {
 }
 .export-band img { height: 44px; width: auto; display: block; }
 .export-band .brand-sub { color: var(--navy); }
-.export-title { text-align: center; font: 700 28px var(--font-display); text-transform: uppercase; padding: 14px 12px; background: var(--bg); }
+.export-brand { white-space: nowrap; }
+.export-title {
+  flex: 1; min-width: 0; text-align: right; color: #fff;
+  font: 700 28px/1.1 var(--font-display); text-transform: uppercase; letter-spacing: .01em;
+}
 .exporting .row-settings { display: none; }
 .exporting .remove { display: none; }
 
