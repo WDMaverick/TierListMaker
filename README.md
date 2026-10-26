@@ -30,7 +30,7 @@ python3 -m http.server 8000
 
 ## Host it on GitHub Pages
 
-In the repo, go to **Settings → Pages**, choose **Deploy from a branch**, pick `main` and `/ (root)`. The site will be live at `https://wdmaverick.github.io/WTL-Prep/`.
+In the repo, go to **Settings → Pages**, choose **Deploy from a branch**, pick `main` and `/ (root)`. The site will be live at `https://weteachleague.github.io/WTL-Prep/`.
 
 League of Legends and champion images are © Riot Games. This project isn't endorsed by Riot Games.
 
@@ -44,7 +44,7 @@ Sign-in and saved lists use [Firebase](https://firebase.google.com/) (free Spark
 
 1. Go to the [Firebase console](https://console.firebase.google.com/), click **Add project**, and create it (Google Analytics is optional).
 2. **Build → Authentication → Get started → Sign-in method → Google → Enable**, pick a support email, and save.
-3. **Authentication → Settings → Authorized domains → Add domain**: `wdmaverick.github.io` (`localhost` is there by default).
+3. **Authentication → Settings → Authorized domains → Add domain**: `weteachleague.github.io` (`localhost` is there by default).
 4. **Build → Firestore Database → Create database** (production mode, any location). Then open the **Rules** tab, replace everything with the rules below, and **Publish**:
 
    ```
