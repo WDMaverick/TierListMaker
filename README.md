@@ -1,6 +1,6 @@
-# TierListMaker (WTL)
+# WTL Prep
 
-A TierMaker-style tier list builder for League of Legends, made for ranking champions with a competitive team. Styled to match the WTL Championship site (navy, blue and magenta; Oswald + Public Sans).
+Team prep for League of Legends: a TierMaker-style tier list builder for ranking champions with a competitive team, plus a draft simulator with fearless series. Styled to match the WTL Championship site (navy, blue and magenta; Oswald + Public Sans).
 
 ## Features
 
@@ -30,7 +30,7 @@ python3 -m http.server 8000
 
 ## Host it on GitHub Pages
 
-In the repo, go to **Settings → Pages**, choose **Deploy from a branch**, pick `main` and `/ (root)`. The site will be live at `https://<your-username>.github.io/TierListMaker/`.
+In the repo, go to **Settings → Pages**, choose **Deploy from a branch**, pick `main` and `/ (root)`. The site will be live at `https://wdmaverick.github.io/WTL-Prep/`.
 
 League of Legends and champion images are © Riot Games. This project isn't endorsed by Riot Games.
 

@@ -1,4 +1,4 @@
-// League Tier List Maker — TierMaker-style drag & drop tier lists for League of Legends.
+// WTL Prep — League of Legends tier lists (TierMaker-style drag & drop) and draft practice.
 // Champion data and portraits come from Riot's Data Dragon CDN, so new champions appear automatically.
 
 const STORAGE_KEY = "lol-tierlist-v1";
@@ -239,12 +239,12 @@ function champEl(key) {
 function render() {
   $("#title").value = state.title;
   const list = $("#tierlist");
-  // Only shown in the downloaded PNG: one WTL blue band with the logo, "Tier List Maker" and the list title.
+  // Only shown in the downloaded PNG: one WTL blue band with the logo, "WTL Prep" and the list title.
   list.innerHTML = `
     <div class="export-head">
       <div class="export-band">
         <img src="assets/wtl-logo.png" alt="WTL" width="66" height="40">
-        <span class="export-brand">Tier List <span class="brand-sub">Maker</span></span>
+        <span class="export-brand">WTL <span class="brand-sub">Prep</span></span>
         <span class="export-title"></span>
       </div>
     </div>`;
