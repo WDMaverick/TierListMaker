@@ -9,7 +9,7 @@ Team prep for League of Legends: a TierMaker-style tier list builder for ranking
 - Default S / A / B / C / D tiers; rename labels inline, recolor, add, reorder, clear or delete rows
 - Search the champion pool
 - Role sub-tabs in All Champions (All Roles / Top / Jungle / Mid / Bot / Support) with unranked counts; roles come from `roles.js` (edit it to change which roles a champion shows under; champions missing from it appear under All Roles only)
-- **Player Pools** tab: 5 player slots with name, role and champion pool. Drag from a player's pool straight into the tier list. The same champion can be ranked once per player, and each entry gets a role tag (TOP / JGL / MID / BOT / SUP); a badge on pool champions shows their tier
+- **Player Pools** tab (top): edit the 5 player slots (name, role, champion pool), bot lane pairs and substitutes. The Tier List tab's Player Pools section shows the same pools, read-only, as the drag source for the tier list. Drag from a player's pool straight into the tier list. The same champion can be ranked once per player, and each entry gets a role tag (TOP / JGL / MID / BOT / SUP); a badge on pool champions shows their tier
 - **Bot Lane Pairings** (6th slot): build ADC & Support duos from any champions (with quick filters for your Bot and Support players' pools). Champions can appear in many pairs, and each pair ranks as a single "Champion & Champion" tile
 - **Substitutes**: add as many extra player slots as you need; their champions get a SUB role tag (e.g. SUB MID)
 - **Show / hide** (eye button) on every player, substitute and the pairings card: hides their entries on the tier list while keeping the pool and each entry's position

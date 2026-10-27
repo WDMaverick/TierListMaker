@@ -337,27 +337,93 @@ function visibilityButton(hidden, onToggle) {
   return b;
 }
 
+// Pools are edited in the Player Pools tab (editor cards) and shown read-only in the
+// Tier List tab's Player Pools section (display cards, the drag source for the tier list).
 function renderPlayers() {
+  renderPoolDisplay();
+  renderPoolEditor();
+}
+
+function renderPoolDisplay() {
   const tiers = tierOf();
   const wrap = $("#players");
   wrap.innerHTML = "";
-  state.players.forEach((p) => wrap.appendChild(playerCard(p, tiers)));
-
+  state.players.forEach((p) => wrap.appendChild(displayCard(p, tiers)));
   const pairs = $("#pairs");
   pairs.innerHTML = "";
-  pairs.appendChild(pairsCard(tiers));
-
+  pairs.appendChild(pairsDisplayCard(tiers));
   const subs = $("#subs");
   subs.innerHTML = "";
-  state.subs.forEach((p) => subs.appendChild(playerCard(p, tiers)));
+  state.subs.forEach((p) => subs.appendChild(displayCard(p, tiers)));
+  $("#subs-wrap").hidden = !state.subs.length;
+}
+
+function renderPoolEditor() {
+  const tiers = tierOf();
+  const wrap = $("#ed-players");
+  wrap.innerHTML = "";
+  state.players.forEach((p) => wrap.appendChild(editorCard(p, tiers)));
+  const pairs = $("#ed-pairs");
+  pairs.innerHTML = "";
+  pairs.appendChild(pairsEditorCard(tiers));
+  const subs = $("#ed-subs");
+  subs.innerHTML = "";
+  state.subs.forEach((p) => subs.appendChild(editorCard(p, tiers)));
   $("#subs-empty").hidden = state.subs.length > 0;
 }
 
-function playerCard(p, tiers) {
-  const sub = isSub(p);
-  const placeholder = sub ? `Substitute ${state.subs.indexOf(p) + 1}` : `Player ${state.players.indexOf(p) + 1}`;
+// Jump to the Player Pools tab, optionally to one card.
+function goToPools(id) {
+  window.TLShowView?.("pools");
+  if (!id) return window.scrollTo({ top: 0 });
+  const card = document.querySelector(`#view-pools .player-card[data-id="${id}"]`);
+  card?.scrollIntoView({ block: "center" });
+  card?.classList.add("flash");
+  setTimeout(() => card?.classList.remove("flash"), 1200);
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-goto=pools]");
+  if (b) goToPools(b.dataset.id);
+});
+
+const placeholderFor = (p) => (isSub(p) ? `Substitute ${state.subs.indexOf(p) + 1}` : `Player ${state.players.indexOf(p) + 1}`);
+const roleTagEl = (p) => `<span class="role-tag role-${p.role.toLowerCase()} head-role">${roleTagText(p)}</span>`;
+
+// Read-only card in the Tier List tab: drag source, tier badges, show/hide.
+function displayCard(p, tiers) {
   const card = document.createElement("div");
-  card.className = "player-card" + (sub ? " sub-card" : "") + (p.hidden ? " is-hidden" : "");
+  card.className = "player-card display-card" + (isSub(p) ? " sub-card" : "") + (p.hidden ? " is-hidden" : "");
+  card.dataset.id = p.id;
+  card.innerHTML = `
+    <div class="player-head">
+      ${roleTagEl(p)}
+      <span class="pc-name${p.name.trim() ? "" : " placeholder"}"></span>
+      <span class="muted player-count">${p.champs.length} champ${p.champs.length === 1 ? "" : "s"}</span>
+      <span class="head-actions"><button class="btn small" data-goto="pools" data-id="${p.id}">Edit</button></span>
+    </div>
+    <div class="player-pool"></div>`;
+  card.querySelector(".pc-name").textContent = playerLabel(p);
+  card.querySelector(".head-actions").prepend(visibilityButton(p.hidden, () => { p.hidden = !p.hidden; save(); render(); }));
+  const pool = card.querySelector(".player-pool");
+  if (!p.champs.length) {
+    pool.innerHTML = `<button class="empty-pool" data-goto="pools" data-id="${p.id}">No champions yet — add them in the Player Pools tab</button>`;
+  }
+  p.champs.forEach((id) => {
+    const el = champEl(id);
+    el.classList.add("pp");
+    el.dataset.owner = p.id;
+    addTierBadge(el, tiers[entryKey(id, p.id)]);
+    pool.appendChild(el);
+  });
+  return card;
+}
+
+// Editable card in the Player Pools tab: name, role, pool, delete (subs).
+function editorCard(p, tiers) {
+  const sub = isSub(p);
+  const placeholder = placeholderFor(p);
+  const card = document.createElement("div");
+  card.className = "player-card editor-card" + (sub ? " sub-card" : "");
   card.dataset.id = p.id;
   card.innerHTML = `
     <div class="player-head">
@@ -368,8 +434,6 @@ function playerCard(p, tiers) {
       <span class="head-actions"><button class="btn small" data-act="edit">Edit pool</button></span>
     </div>
     <div class="player-pool"></div>`;
-  const actions = card.querySelector(".head-actions");
-  actions.prepend(visibilityButton(p.hidden, () => { p.hidden = !p.hidden; save(); render(); }));
   if (sub) {
     const del = document.createElement("button");
     del.type = "button";
@@ -382,17 +446,19 @@ function playerCard(p, tiers) {
       purgePlayerEntries();
       save(); render();
     });
-    actions.appendChild(del);
+    card.querySelector(".head-actions").appendChild(del);
   }
 
   const name = card.querySelector(".player-name");
   name.value = p.name;
   name.addEventListener("input", () => {
-    p.name = name.value; save();
-    // keep tile tooltips current without re-rendering (which would steal focus)
+    p.name = name.value;
+    save();
+    // Update everything that shows the name without re-rendering this card (which would steal focus).
     document.querySelectorAll(`#tierlist .champ[data-key$="|${p.id}"]`).forEach((el) => {
       el.title = `${champions[el.dataset.id].name} — ${playerLabel(p)} (${sub ? "Sub " : ""}${p.role})`;
     });
+    renderPoolDisplay();
     renderHiddenNote();
   });
   card.querySelector(".player-role").addEventListener("change", (e) => { p.role = e.target.value; save(); render(); });
@@ -400,13 +466,12 @@ function playerCard(p, tiers) {
 
   const pool = card.querySelector(".player-pool");
   if (!p.champs.length) {
-    pool.innerHTML = `<button class="empty-pool" data-act="edit">+ Add champions</button>`;
+    pool.innerHTML = `<button class="empty-pool">+ Add champions</button>`;
     pool.querySelector("button").addEventListener("click", () => openPicker(p.id));
   }
   p.champs.forEach((id) => {
     const el = champEl(id);
-    el.classList.add("pp");
-    el.dataset.owner = p.id;
+    el.classList.add("static");
     addTierBadge(el, tiers[entryKey(id, p.id)]);
     el.appendChild(removeButton(`Remove ${champions[id].name} from pool`, () => {
       p.champs = p.champs.filter((c) => c !== id);
@@ -422,26 +487,51 @@ $("#add-sub").addEventListener("click", () => {
   const p = { id: uid(), name: "", role: ROLES[0], champs: [], hidden: false };
   state.subs.push(p);
   save(); render();
-  const input = document.querySelector(`.player-card[data-id="${p.id}"] .player-name`);
+  const input = document.querySelector(`#view-pools .player-card[data-id="${p.id}"] .player-name`);
   input?.scrollIntoView({ block: "center", behavior: "smooth" });
   input?.focus({ preventScroll: true });
 });
 
-// ---------- Bot lane pairings (6th slot) ----------
-function pairsCard(tiers) {
+// ---------- Bot lane pairings ----------
+function pairsDisplayCard(tiers) {
   const card = document.createElement("div");
-  card.className = "player-card pairs-card" + (state.pairsHidden ? " is-hidden" : "");
+  card.className = "player-card pairs-card display-card" + (state.pairsHidden ? " is-hidden" : "");
   card.innerHTML = `
     <div class="player-head">
       <span class="pairs-title">Pairs</span>
       <span class="muted player-count">${state.pairs.length} pair${state.pairs.length === 1 ? "" : "s"}</span>
-      <button class="btn small" data-act="new-pair">+ New pair</button>
+      <span class="head-actions"><button class="btn small" data-goto="pools" data-id="pairs">Edit</button></span>
+    </div>
+    <div class="player-pool"></div>`;
+  card.querySelector(".head-actions").prepend(visibilityButton(state.pairsHidden, () => {
+    state.pairsHidden = !state.pairsHidden; save(); render();
+  }));
+  const pool = card.querySelector(".player-pool");
+  if (!state.pairs.length) {
+    pool.innerHTML = `<button class="empty-pool" data-goto="pools" data-id="pairs">No pairs yet — create them in the Player Pools tab</button>`;
+  }
+  state.pairs.forEach((pair) => {
+    const key = `pair:${pair.id}`;
+    const el = pairEl(key);
+    el.classList.add("pp");
+    addTierBadge(el, tiers[key]);
+    pool.appendChild(el);
+  });
+  return card;
+}
+
+function pairsEditorCard(tiers) {
+  const card = document.createElement("div");
+  card.className = "player-card pairs-card editor-card";
+  card.dataset.id = "pairs";
+  card.innerHTML = `
+    <div class="player-head">
+      <span class="pairs-title">Pairs</span>
+      <span class="muted player-count">${state.pairs.length} pair${state.pairs.length === 1 ? "" : "s"}</span>
+      <span class="head-actions"><button class="btn small" data-act="new-pair">+ New pair</button></span>
     </div>
     <div class="player-pool"></div>`;
   card.querySelector("[data-act=new-pair]").addEventListener("click", openPairDialog);
-  card.querySelector("[data-act=new-pair]").before(visibilityButton(state.pairsHidden, () => {
-    state.pairsHidden = !state.pairsHidden; save(); render();
-  }));
   const pool = card.querySelector(".player-pool");
   if (!state.pairs.length) {
     pool.innerHTML = `<button class="empty-pool">+ Create a bot lane pair</button>`;
@@ -450,7 +540,7 @@ function pairsCard(tiers) {
   state.pairs.forEach((pair) => {
     const key = `pair:${pair.id}`;
     const el = pairEl(key);
-    el.classList.add("pp");
+    el.classList.add("static");
     addTierBadge(el, tiers[key]);
     el.appendChild(removeButton("Delete this pair", () => {
       state.pairs = state.pairs.filter((p) => p.id !== pair.id);
@@ -790,6 +880,7 @@ let drag = null; // { el, ghost, offsetX, offsetY, startX, startY, active }
 document.addEventListener("pointerdown", (e) => {
   const source = e.target.closest(".champ");
   if (!source || e.button > 0 || e.target.closest(".remove")) return;
+  if (source.classList.contains("static")) return; // pool editor tiles aren't draggable
   if (source.closest(".is-hidden")) {
     e.preventDefault();
     toast("This pool is hidden from the tier list — click Hidden to show it first");

@@ -423,20 +423,22 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
   .account-name { display: none; }
 }
 
-/* ----- Player Pools tab: WTL bright blue controls ----- */
+/* ----- Player Pools (editor tab + tier list section): WTL bright blue controls ----- */
 #panel-players .btn:not(.danger),
-#panel-players .player-role {
+#view-pools .btn:not(.danger),
+#view-pools .player-role {
   background: var(--primary); border-color: var(--primary); color: #fff;
 }
 #panel-players .btn:not(.danger):hover,
-#panel-players .player-role:hover {
+#view-pools .btn:not(.danger):hover,
+#view-pools .player-role:hover {
   background: var(--primary-hover); border-color: var(--primary-hover);
 }
-#panel-players .player-role {
+#view-pools .player-role {
   font: 600 14px/1 var(--font-display); text-transform: uppercase; letter-spacing: .06em;
   padding: 8px 8px; border-radius: 4px; cursor: pointer;
 }
-#panel-players .player-role option { background: var(--overlay); color: var(--text); }
+#view-pools .player-role option { background: var(--overlay); color: var(--text); }
 /* "Hidden" stays recognisable: outlined in blue instead of filled */
 #panel-players .vis-toggle.off { background: transparent; border: 1px dashed var(--primary); color: var(--muted); }
 #panel-players .vis-toggle.off:hover { background: rgba(35, 35, 242, .15); color: #fff; }
@@ -676,4 +678,35 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
   .pick-name { font-size: 13px; }
   .draft-grid { grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); max-height: 480px; }
   .dchamp { font-size: 11px; }
+}
+
+/* ----- Player Pools tab ----- */
+.pools-intro { margin-bottom: 20px; }
+.page-title { margin: 0 0 6px; font: 700 34px/1.1 var(--font-display); text-transform: uppercase; letter-spacing: .01em; }
+.pools-intro .muted { margin: 0; max-width: 75ch; }
+#view-pools .add-sub { margin-top: 2px; }
+.editor-card .champ.static { cursor: default; }
+.player-card.flash { animation: flash 1.2s ease-out; }
+@keyframes flash { 0%, 40% { box-shadow: 0 0 0 2px var(--magenta); } 100% { box-shadow: 0 0 0 2px transparent; } }
+
+/* Read-only pool cards in the Tier List tab */
+.display-card .player-head { gap: 10px; }
+.head-role { position: static; font-size: 11px; line-height: 18px; padding: 0 6px; }
+.pc-name {
+  flex: 1; min-width: 0; padding: 6px 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font: 600 18px var(--font-display); text-transform: uppercase; letter-spacing: .03em;
+}
+.pc-name.placeholder { color: var(--muted); }
+.player-card.is-hidden .pc-name { color: var(--muted); }
+.empty-pool[data-goto] { font-weight: 500; }
+#subs-wrap[hidden] { display: none; }
+/* Pool cards show the tier badge in that corner, not the BOT LANE tag */
+.player-pool .role-duo { display: none; }
+@media (max-width: 600px) {
+  .topbar { padding: 8px 10px; gap: 6px; }
+  .brand .logo { height: 34px; }
+  .view-tabs { margin-left: 2px; gap: 0; }
+  .view-tab { padding: 0 6px; font-size: 12px; letter-spacing: .04em; line-height: 1.1; }
+  .signin-btn { padding: 8px; }
+  .signin-btn span { display: none; }
 }
