@@ -11,7 +11,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=202610270940" />
+  <link rel="stylesheet" href="style.css?v=202610270948" />
 </head>
 <body>
   <header class="topbar">
@@ -232,6 +232,14 @@
         <h3 id="picker-title">Champion pool</h3>
         <span id="picker-count" class="muted"></span>
       </div>
+      <div class="role-tabs picker-roles" id="picker-roles" role="tablist" aria-label="Filter champions by role">
+        <button type="button" class="seg" data-role="all">All Roles</button>
+        <button type="button" class="seg" data-role="Top">Top</button>
+        <button type="button" class="seg" data-role="Jungle">Jungle</button>
+        <button type="button" class="seg" data-role="Mid">Mid</button>
+        <button type="button" class="seg" data-role="Bot">Bot</button>
+        <button type="button" class="seg" data-role="Support">Support</button>
+      </div>
       <input id="picker-search" class="search" type="search" placeholder="Search champions…" />
       <div id="picker-grid" class="picker-grid"></div>
       <button class="btn primary close" value="close">Done</button>
@@ -260,10 +268,10 @@
   <div id="toast" class="toast"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="roles.js?v=202610270940"></script>
-  <script src="firebase-config.js?v=202610270940"></script>
-  <script src="app.js?v=202610270940"></script>
-  <script src="draft.js?v=202610270940"></script>
-  <script type="module" src="cloud.js?v=202610270940"></script>
+  <script src="roles.js?v=202610270948"></script>
+  <script src="firebase-config.js?v=202610270948"></script>
+  <script src="app.js?v=202610270948"></script>
+  <script src="draft.js?v=202610270948"></script>
+  <script type="module" src="cloud.js?v=202610270948"></script>
 </body>
 </html>

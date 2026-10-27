@@ -630,14 +630,28 @@ $("#pair-add").addEventListener("click", (e) => {
   renderPairDialog();
 });
 
+// Role filter in the pool picker; opens on the player's own role.
+let pickerRole = "all";
+
 function openPicker(playerId) {
   editingPlayerId = playerId;
   const p = playerById(playerId);
   $("#picker-title").textContent = `${playerLabel(p)}'s champion pool`;
   $("#picker-search").value = "";
+  pickerRole = p.role || "all";
   renderPicker();
   $("#picker-dialog").showModal();
   $("#picker-search").focus();
+}
+
+// Each role tab shows how many of its champions are already in this pool.
+function renderPickerRoles(p) {
+  document.querySelectorAll("#picker-roles .seg").forEach((b) => {
+    const r = b.dataset.role;
+    const n = r === "all" ? p.champs.length : p.champs.filter((id) => championRoles(id).includes(r)).length;
+    b.setAttribute("aria-selected", String(r === pickerRole));
+    b.innerHTML = `${r === "all" ? "All Roles" : r}${n ? `<span class="seg-count">${n}</span>` : ""}`;
+  });
 }
 
 function renderPicker() {
@@ -647,7 +661,16 @@ function renderPicker() {
   const grid = $("#picker-grid");
   const selected = new Set(p.champs);
   grid.innerHTML = "";
-  const ids = q ? searchChampions(Object.keys(champions), q) : Object.keys(champions);
+  const inRole = (id) => pickerRole === "all" || championRoles(id).includes(pickerRole);
+  const all = Object.keys(champions);
+  renderPickerRoles(p);
+  const ids = (q ? searchChampions(all, q) : all).filter(inRole);
+  if (!ids.length) {
+    // Searching for someone outside the selected role: offer to look in all roles.
+    const elsewhere = q && pickerRole !== "all" ? searchChampions(all, q).length : 0;
+    grid.innerHTML = `<p class="muted picker-empty">No ${pickerRole === "all" ? "" : pickerRole + " "}champions match.${elsewhere ? ` <button type="button" class="link-btn" id="picker-all">Search all roles (${elsewhere})</button>` : ""}</p>`;
+    $("#picker-all")?.addEventListener("click", () => { pickerRole = "all"; renderPicker(); $("#picker-search").focus(); });
+  }
   ids.map((id) => champions[id]).forEach((c) => {
     const b = document.createElement("button");
     b.type = "button";
@@ -671,8 +694,16 @@ $("#picker-grid").addEventListener("click", (e) => {
   b.classList.toggle("selected");
   $("#picker-count").textContent = `${p.champs.length} selected`;
   save();
+  renderPickerRoles(p);
 });
 $("#picker-search").addEventListener("input", renderPicker);
+$("#picker-roles").addEventListener("click", (e) => {
+  const b = e.target.closest(".seg");
+  if (!b) return;
+  pickerRole = b.dataset.role;
+  renderPicker();
+  $("#picker-search").focus();
+});
 keyboardPicker($("#picker-search"), $("#picker-grid"), renderPicker);
 
 // ---------- Keyboard selection in champion pickers ----------

@@ -710,3 +710,8 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
   .signin-btn { padding: 8px; }
   .signin-btn span { display: none; }
 }
+
+/* Role filter in the pool picker */
+.picker-roles { margin: 0; }
+.picker-roles .seg { padding: 8px 11px; font-size: 13px; }
+.picker-empty { grid-column: 1 / -1; margin: 6px 2px; }
