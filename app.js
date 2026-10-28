@@ -52,7 +52,10 @@ const $ = (sel) => document.querySelector(sel);
 const uid = () => Math.random().toString(36).slice(2, 9);
 
 // Comps tab: named tiers, each holding comps of 5 slots (role + champion).
-const newComp = () => ({ id: uid(), name: "", slots: ROLES.map((role) => ({ role, champ: null })) });
+const newComp = () => ({
+  id: uid(), name: "", side: "either", b1: null, notes: "",
+  slots: ROLES.map((role) => ({ role, champ: null, alts: [null, null] })),
+});
 function defaultCompTiers() {
   return [
     { id: uid(), name: "S", color: "#ff7f7f", comps: [newComp()] },
@@ -162,9 +165,17 @@ function normalize(s) {
       comps: (Array.isArray(t.comps) ? t.comps : []).filter((c) => c && typeof c === "object").map((c) => ({
         id: c.id || uid(),
         name: typeof c.name === "string" ? c.name : "",
+        side: ["blue", "red", "either"].includes(c.side) ? c.side : "either",
+        b1: Number.isInteger(c.b1) && c.b1 >= 0 && c.b1 < 5 ? c.b1 : null,
+        notes: typeof c.notes === "string" ? c.notes : "",
         slots: ROLES.map((role, i) => {
           const sl = (Array.isArray(c.slots) && c.slots[i]) || {};
-          return { role: ROLES.includes(sl.role) ? sl.role : role, champ: champions[sl.champ] ? sl.champ : null };
+          const alts = Array.isArray(sl.alts) ? sl.alts : [];
+          return {
+            role: ROLES.includes(sl.role) ? sl.role : role,
+            champ: champions[sl.champ] ? sl.champ : null,
+            alts: [0, 1].map((k) => (champions[alts[k]] ? alts[k] : null)), // two adaptation picks per role
+          };
         }),
       })),
     }));

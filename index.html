@@ -11,7 +11,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=202610272313" />
+  <link rel="stylesheet" href="style.css?v=202610272328" />
 </head>
 <body>
   <header class="topbar">
@@ -122,7 +122,7 @@
   <div id="view-comps" hidden>
     <div class="pools-intro">
       <h1 class="page-title">Comps</h1>
-      <p class="muted">Plan team compositions. Each comp has five slots: click one to choose its role and champion. Rename a tier by clicking its name, and use ⋯ on a comp to move, duplicate or delete it.</p>
+      <p class="muted">Plan team compositions. Each comp has five slots: click one to choose its role and champion. Click a comp's title to open its details (side, B1 pick, adaptations, notes). Rename a tier by clicking its name, and use ⋯ on a comp to move, duplicate or delete it.</p>
     </div>
     <div id="comp-tiers" class="comp-tiers"></div>
     <button type="button" class="btn add-sub" id="add-comp-tier">+ Add tier</button>
@@ -249,6 +249,40 @@
     </form>
   </dialog>
 
+  <dialog id="comp-detail" class="comp-detail" aria-labelledby="cd-name">
+    <div class="cd-head">
+      <input id="cd-name" class="cd-name" maxlength="32" placeholder="Comp name" aria-label="Comp name" />
+      <span id="cd-tier" class="cd-tier"></span>
+      <button type="button" class="cd-close" id="cd-close" aria-label="Close" title="Close (Esc)">×</button>
+    </div>
+    <div class="cd-body">
+      <div class="cd-settings">
+        <div class="cd-field">
+          <span class="cd-label">Side</span>
+          <div class="cd-side" id="cd-side" role="radiogroup" aria-label="Side">
+            <button type="button" data-side="blue" role="radio">Blue side</button>
+            <button type="button" data-side="red" role="radio">Red side</button>
+            <button type="button" data-side="either" role="radio">Either side</button>
+          </div>
+        </div>
+        <div class="cd-field" id="cd-b1-field">
+          <span class="cd-label" id="cd-b1-label">First pick (B1)</span>
+          <div class="cd-b1" id="cd-b1" role="radiogroup" aria-labelledby="cd-b1-label"></div>
+        </div>
+      </div>
+
+      <div class="cd-lineup">
+        <div class="cd-lineup-head"><span>Main pick</span><span>Adaptation 1</span><span>Adaptation 2</span></div>
+        <div id="cd-rows"></div>
+      </div>
+
+      <label class="cd-field cd-notes">
+        <span class="cd-label">Notes</span>
+        <textarea id="cd-notes" rows="5" placeholder="Win conditions, power spikes, how to draft into it, matchups to avoid…"></textarea>
+      </label>
+    </div>
+  </dialog>
+
   <div id="comp-menu" class="tier-menu" role="menu" hidden></div>
 
   <dialog id="picker-dialog">
@@ -293,11 +327,11 @@
   <div id="toast" class="toast"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="roles.js?v=202610272313"></script>
-  <script src="firebase-config.js?v=202610272313"></script>
-  <script src="app.js?v=202610272313"></script>
-  <script src="comps.js?v=202610272313"></script>
-  <script src="draft.js?v=202610272313"></script>
-  <script type="module" src="cloud.js?v=202610272313"></script>
+  <script src="roles.js?v=202610272328"></script>
+  <script src="firebase-config.js?v=202610272328"></script>
+  <script src="app.js?v=202610272328"></script>
+  <script src="comps.js?v=202610272328"></script>
+  <script src="draft.js?v=202610272328"></script>
+  <script type="module" src="cloud.js?v=202610272328"></script>
 </body>
 </html>
