@@ -11,7 +11,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=202610270948" />
+  <link rel="stylesheet" href="style.css?v=202610272313" />
 </head>
 <body>
   <header class="topbar">
@@ -23,6 +23,7 @@
       <button type="button" class="view-tab" role="tab" data-view="tierlist" aria-selected="true">Tier List</button>
       <button type="button" class="view-tab" role="tab" data-view="draft" aria-selected="false">Draft</button>
       <button type="button" class="view-tab" role="tab" data-view="pools" aria-selected="false">Player Pools</button>
+      <button type="button" class="view-tab" role="tab" data-view="comps" aria-selected="false">Comps</button>
     </nav>
     <div class="topbar-right">
       <div class="patch" id="patch">Loading champions…</div>
@@ -116,6 +117,15 @@
     <div id="ed-subs" class="players"></div>
     <p id="subs-empty" class="muted subs-empty">No substitutes yet.</p>
     <button type="button" id="add-sub" class="btn add-sub">+ Add substitute</button>
+  </div>
+
+  <div id="view-comps" hidden>
+    <div class="pools-intro">
+      <h1 class="page-title">Comps</h1>
+      <p class="muted">Plan team compositions. Each comp has five slots: click one to choose its role and champion. Rename a tier by clicking its name, and use ⋯ on a comp to move, duplicate or delete it.</p>
+    </div>
+    <div id="comp-tiers" class="comp-tiers"></div>
+    <button type="button" class="btn add-sub" id="add-comp-tier">+ Add tier</button>
   </div>
 
   <div id="view-draft" hidden>
@@ -226,6 +236,21 @@
     </form>
   </dialog>
 
+  <dialog id="comp-dialog">
+    <form method="dialog" class="dialog-body picker">
+      <div class="picker-head">
+        <h3 id="comp-dialog-title">Choose champion</h3>
+        <button type="button" class="btn small danger" id="comp-clear">Clear slot</button>
+      </div>
+      <div class="role-tabs picker-roles" id="comp-roles" aria-label="Slot role and champion filter"></div>
+      <input id="comp-search" class="search" type="search" placeholder="Search champions…" />
+      <div id="comp-grid" class="picker-grid"></div>
+      <button class="btn primary close" value="close">Done</button>
+    </form>
+  </dialog>
+
+  <div id="comp-menu" class="tier-menu" role="menu" hidden></div>
+
   <dialog id="picker-dialog">
     <form method="dialog" class="dialog-body picker">
       <div class="picker-head">
@@ -268,10 +293,11 @@
   <div id="toast" class="toast"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="roles.js?v=202610270948"></script>
-  <script src="firebase-config.js?v=202610270948"></script>
-  <script src="app.js?v=202610270948"></script>
-  <script src="draft.js?v=202610270948"></script>
-  <script type="module" src="cloud.js?v=202610270948"></script>
+  <script src="roles.js?v=202610272313"></script>
+  <script src="firebase-config.js?v=202610272313"></script>
+  <script src="app.js?v=202610272313"></script>
+  <script src="comps.js?v=202610272313"></script>
+  <script src="draft.js?v=202610272313"></script>
+  <script type="module" src="cloud.js?v=202610272313"></script>
 </body>
 </html>

@@ -51,6 +51,16 @@ let editingPlayerId = null;
 const $ = (sel) => document.querySelector(sel);
 const uid = () => Math.random().toString(36).slice(2, 9);
 
+// Comps tab: named tiers, each holding comps of 5 slots (role + champion).
+const newComp = () => ({ id: uid(), name: "", slots: ROLES.map((role) => ({ role, champ: null })) });
+function defaultCompTiers() {
+  return [
+    { id: uid(), name: "S", color: "#ff7f7f", comps: [newComp()] },
+    { id: uid(), name: "A", color: "#ffbf7f", comps: [] },
+    { id: uid(), name: "B", color: "#ffdf7f", comps: [] },
+  ];
+}
+
 function defaultState() {
   return {
     title: "League of Legends – All Champions Tier List",
@@ -59,6 +69,7 @@ function defaultState() {
     subs: [],
     pairs: [],
     pairsHidden: false,
+    compTiers: defaultCompTiers(),
   };
 }
 
@@ -142,6 +153,21 @@ function normalize(s) {
   s.players = players.map((p, i) => cleanPlayer(p, ROLES[i]));
   s.subs = (Array.isArray(s.subs) ? s.subs : []).filter((p) => p && typeof p === "object").map((p) => cleanPlayer(p, ROLES[0]));
   s.pairsHidden = !!s.pairsHidden;
+  s.compTiers = (Array.isArray(s.compTiers) ? s.compTiers : defaultCompTiers())
+    .filter((t) => t && typeof t === "object")
+    .map((t) => ({
+      id: t.id || uid(),
+      name: typeof t.name === "string" ? t.name : "",
+      color: typeof t.color === "string" ? t.color : "#cfcfcf",
+      comps: (Array.isArray(t.comps) ? t.comps : []).filter((c) => c && typeof c === "object").map((c) => ({
+        id: c.id || uid(),
+        name: typeof c.name === "string" ? c.name : "",
+        slots: ROLES.map((role, i) => {
+          const sl = (Array.isArray(c.slots) && c.slots[i]) || {};
+          return { role: ROLES.includes(sl.role) ? sl.role : role, champ: champions[sl.champ] ? sl.champ : null };
+        }),
+      })),
+    }));
   const everyone = [...s.players, ...s.subs];
 
   // Bot lane pairings: any two known champions; the same champion can be in many pairs.
@@ -1157,9 +1183,9 @@ $("#search").addEventListener("input", applySearch);
 $("#btn-add-row").addEventListener("click", () => addRow(state.rows.length));
 
 $("#btn-reset").addEventListener("click", () => {
-  if (!confirm("Reset the tier list? All champions go back to the pool and rows return to S–D. Player pools, substitutes and bot lane pairs are kept.")) return;
-  const { players, subs, pairs, pairsHidden } = state;
-  state = { ...defaultState(), players, subs, pairs, pairsHidden };
+  if (!confirm("Reset the tier list? All champions go back to the pool and rows return to S–D. Player pools, substitutes, bot lane pairs and comps are kept.")) return;
+  const { players, subs, pairs, pairsHidden, compTiers } = state;
+  state = { ...defaultState(), players, subs, pairs, pairsHidden, compTiers };
   save(); render();
 });
 
@@ -1247,8 +1273,8 @@ window.TL = {
   },
   newList() {
     // A fresh list keeps the team (players, subs, pairs) but starts with empty S–D rows.
-    const { players, subs, pairs, pairsHidden } = state;
-    state = { ...defaultState(), players, subs, pairs, pairsHidden };
+    const { players, subs, pairs, pairsHidden, compTiers } = state;
+    state = { ...defaultState(), players, subs, pairs, pairsHidden, compTiers };
     save();
     render();
   },

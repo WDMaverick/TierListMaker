@@ -448,11 +448,13 @@
 
   // ---------- Views (Tier List / Draft) ----------
   function showView(view) {
-    if (!["tierlist", "draft", "pools"].includes(view)) view = "tierlist";
+    if (!["tierlist", "draft", "pools", "comps"].includes(view)) view = "tierlist";
     const isDraft = view === "draft";
     q("#view-tierlist").hidden = view !== "tierlist";
     q("#view-draft").hidden = !isDraft;
     q("#view-pools").hidden = view !== "pools";
+    q("#view-comps").hidden = view !== "comps";
+    if (view === "comps") window.renderComps?.();
     q("#main").classList.toggle("wide", isDraft);
     qa(".view-tab").forEach((t) => t.setAttribute("aria-selected", String(t.dataset.view === view)));
     try { localStorage.setItem(VIEW_KEY, view); } catch (_) {}

@@ -18,6 +18,7 @@ Team prep for League of Legends: a TierMaker-style tier list builder for ranking
 - Export / import tier lists as JSON
 - Autosaves in the browser
 - **Draft tab** (top left): simulate a pro draft. Blue and red bans and picks in tournament order (or click any slot to fill it out of order), champion search (`/` to focus) and role filters, Enter to lock in, Esc to cancel, right-click a slot to clear, Undo and Reset. Game 1–5 sub-tabs simulate a fearless series: champions picked in an earlier game are locked (marked G1, G2…) in later games; bans don't carry over, and fearless can be switched off. Below it, show any tier list (this device's or one saved to your account) with picked and banned champions greyed out and marked B / R / BAN
+- **Comps tab**: plan team compositions in named, colour-coded tiers. Each comp is a vertical column of five slots showing the champion's splash art with a role pill; click a slot to set its role and champion (search, role filters, keyboard). Comps can be renamed, reordered, moved between tiers, duplicated and deleted, and are saved with the list
 - **Google sign-in** (top right): save tier lists to your account, autosave them, and open them on any device
 
 ## Run it
